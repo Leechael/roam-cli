@@ -1,4 +1,6 @@
 BINARY_NAME := roam-cli
+BIN_DIR := bin
+BIN_PATH := $(BIN_DIR)/$(BINARY_NAME)
 OUT_DIR := dist
 CMD := ./cmd/roam-cli
 GOFLAGS ?= -buildvcs=false
@@ -14,7 +16,7 @@ help:
 	@echo "  make test         - run unit tests"
 	@echo "  make bdd-test     - run BDD tests"
 	@echo "  make ci           - fmt check + vet + tests + build"
-	@echo "  make build        - build local binary to ./$(BINARY_NAME)"
+	@echo "  make build        - build local binary to ./$(BIN_PATH)"
 	@echo "  make run          - run CLI (pass ARGS='...')"
 	@echo "  make install      - install binary to GOPATH/bin"
 	@echo "  make clean        - remove build artifacts"
@@ -41,7 +43,8 @@ ci:
 	go build -v $(CMD)
 
 build:
-	go build -o $(BINARY_NAME) $(CMD)
+	mkdir -p $(BIN_DIR)
+	go build -o $(BIN_PATH) $(CMD)
 
 run:
 	go run $(CMD) $(ARGS)
@@ -50,7 +53,7 @@ install:
 	go install $(CMD)
 
 clean:
-	rm -rf $(OUT_DIR) $(BINARY_NAME)
+	rm -rf $(OUT_DIR) $(BIN_DIR)
 
 cross-build: clean
 	mkdir -p $(OUT_DIR)
