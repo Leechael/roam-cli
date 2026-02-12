@@ -1,5 +1,5 @@
 # Binaries
-/roam-cli
+/bin/
 *.exe
 *.test
 *.out

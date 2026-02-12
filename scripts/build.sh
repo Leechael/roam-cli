@@ -8,4 +8,4 @@ make tidy
 make fmt
 make build
 
-echo "Built: $ROOT_DIR/roam-cli"
+echo "Built: $ROOT_DIR/bin/roam-cli"
