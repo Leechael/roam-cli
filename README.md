@@ -1,145 +1,135 @@
-# roamresearch-skills / roam-cli
+# roam-cli
 
-Go CLI refactor workspace for the RoamResearch MCP/SDK.
+`roam-cli` is a command-line tool for working with your Roam Research graph.
 
-## Current status
+It supports:
+- page/block retrieval
+- full-text block search
+- raw datalog queries
+- markdown import as pages
+- daily journal extraction
+- low-level block and batch write operations
 
-Core commands are implemented:
-- high-level:
-  - `status`
-  - `get`
-  - `search`
-  - `q`
-  - `save` (alias: `save-markdown`)
-  - `journal` (aliases: `get-journaling-by-date`, `journaling`)
-- low-level:
-  - `block create|update|delete|get`
-  - `batch run`
+---
 
-## Env vars
+## Install
 
-Required:
-- `ROAM_API_TOKEN`
-- `ROAM_API_GRAPH`
-
-Optional:
-- `ROAM_API_BASE_URL` (default: `https://api.roamresearch.com/api/graph`)
-- `ROAM_TIMEOUT_SECONDS` (default: `10`)
-- `TOPIC_NODE` / `ROAM_TOPIC_NODE` (used by `journal`)
-
-## Build
+### Option A: Download from GitHub Releases
 
 ```bash
+gh release list -R Leechael/roamresearch-skills
+gh release download -R Leechael/roamresearch-skills --pattern 'roam-cli-*.tar.gz'
+```
+
+Extract the archive for your platform and place `roam-cli` in your `PATH`.
+
+### Option B: Build from source
+
+```bash
+git clone git@github.com:Leechael/roamresearch-skills.git
 cd roamresearch-skills
-go mod tidy
 go build -o roam-cli ./cmd/roam-cli
 ```
 
-Or with Makefile:
+---
+
+## Required configuration
+
+Set credentials via environment variables:
 
 ```bash
-cd roamresearch-skills
-make build
-make run ARGS='--help'
-make ci
+export ROAM_API_TOKEN="<token>"
+export ROAM_API_GRAPH="<graph>"
 ```
 
-## Test
+Optional:
 
 ```bash
-cd roamresearch-skills
-# unit tests
-go test ./...
-
-# bdd tests
-go test -tags=bdd ./tests/bdd/...
+export ROAM_API_BASE_URL="https://api.roamresearch.com/api/graph"
+export ROAM_TIMEOUT_SECONDS="10"
+export TOPIC_NODE="<topic>"
 ```
 
-## CI / Release Automation
-
-In this standalone repo, workflows live under `.github/workflows`:
-- `go-ci.yml`: format/vet/unit/bdd/build
-- `release-on-tag.yml`: auto GitHub Release on tag `roam-cli-v*`
-- `release-command.yml`: trigger release tag by PR comment command
-
-Yes, CI is already in place.
-
-PR comment release command:
-
-```text
-!release <patch|minor|major> [alpha|beta|rc]
-```
-
-Examples:
-- `!release patch`
-- `!release minor beta`
-
-Manual dispatch is also supported in Actions (`Release Command` workflow).
-
-## Pre-commit Hook (prek)
-
-This repo uses `prek` with `prek.toml`.
-
-Setup:
+Validate setup before use:
 
 ```bash
-cd roamresearch-skills
-./scripts/setup-hooks.sh
+roam-cli status
+roam-cli status --json
+roam-cli status --jq '.ok'
 ```
 
-What runs on pre-commit:
-- gofmt check
-- go vet
-- unit tests (`go test ./...`)
-- basic text/yaml hygiene hooks from `pre-commit-hooks`
+---
 
-You can run manually:
+## Commands
 
-```bash
-prek run --config prek.toml --all-files
-```
+### High-level commands
 
-## Release (local)
+- `status` — check credentials and API connectivity
+- `get` — read page by title or block by uid
+- `search` — search blocks by terms
+- `q` — run raw datalog query
+- `save` (`save-markdown`) — save markdown as a page
+- `journal` (`get-journaling-by-date`, `journaling`) — read daily journaling blocks
 
-```bash
-cd roamresearch-skills
-./scripts/release.sh v0.1.0
-```
+### Low-level commands
 
-This generates cross-platform artifacts in `dist/`:
-- darwin amd64/arm64
-- linux amd64/arm64
-- sha256 checksums
+- `block create|update|delete|get`
+- `batch run`
 
-## Examples
+---
+
+## Usage examples
 
 ```bash
-# health/status check
-./roam-cli status
-./roam-cli status --json
-./roam-cli status --jq '.ok'
-
-# get by page title or uid
-./roam-cli get "Page Title"
-./roam-cli get "((block-uid))"
+# read
+roam-cli get "Page Title"
+roam-cli get "((block-uid))"
 
 # search
-./roam-cli search term1 term2 --limit 20
+roam-cli search term1 term2 --limit 20
 
-# datalog query
-./roam-cli q '[:find ?title :where [?e :node/title ?title]]'
-./roam-cli q "$(cat ./examples/query.page-titles.datalog)"
+# query
+roam-cli q '[:find ?title :where [?e :node/title ?title]]'
 
 # save markdown
-./roam-cli save --title "New Page" --file ./examples/note.md
-cat ./examples/note.md | ./roam-cli save --title "New Page"
+roam-cli save --title "New Page" --file ./examples/note.md
+cat ./examples/note.md | roam-cli save --title "New Page"
 
 # journal
-./roam-cli journal --date 2026-02-12
+roam-cli journal --date 2026-02-12
 
-# low-level block create
-./roam-cli block create --parent "02-12-2026" --text "hello from go"
+# low-level block
+roam-cli block create --parent "02-12-2026" --text "hello"
 
-# low-level batch from file
-./roam-cli batch run --file ./examples/actions.create-page-and-block.json
+# low-level batch
+roam-cli batch run --file ./examples/actions.create-page-and-block.json
+```
+
+---
+
+## Install the Agent Skill
+
+This repository also ships an Agent Skill package under `skills/roamresearch`.
+
+Install with:
+
+```bash
+npx skills add Leechael/roamresearch-skills
+```
+
+After installation, your agent can load and use the `roamresearch` skill instructions.
+
+---
+
+## Recommended secret handling
+
+Use 1Password CLI to inject credentials at runtime:
+
+- https://developer.1password.com/docs/service-accounts/use-with-1password-cli
+
+Example:
+
+```bash
+op run --env-file=.env -- roam-cli status
+op run --env-file=.env -- roam-cli get "Page Title"
 ```
