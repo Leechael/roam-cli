@@ -186,7 +186,7 @@ jobs:
 
   build-release:
     needs: [parse, create-tag]
-    if: needs.create-tag.result == 'success'
+    if: always() && needs.create-tag.result == 'success'
     runs-on: ubuntu-latest
     env:
       ISSUE_NUMBER: ${{ needs.parse.outputs.issue_number }}
