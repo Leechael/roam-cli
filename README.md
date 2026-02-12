@@ -6,6 +6,7 @@ Go CLI refactor workspace for the RoamResearch MCP/SDK.
 
 Core commands are implemented:
 - high-level:
+  - `status`
   - `get`
   - `search`
   - `q`
@@ -113,6 +114,9 @@ This generates cross-platform artifacts in `dist/`:
 ## Examples
 
 ```bash
+# health/status check
+./roam-cli status
+
 # get by page title or uid
 ./roam-cli get "Page Title"
 ./roam-cli get "((block-uid))"

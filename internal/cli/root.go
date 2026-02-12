@@ -33,6 +33,7 @@ func newRootCmd() *cobra.Command {
 	root.PersistentFlags().StringVar(&opts.baseURL, "base-url", "", "Roam API base URL (overrides ROAM_API_BASE_URL)")
 	root.PersistentFlags().IntVar(&opts.timeout, "timeout", 0, "Request timeout in seconds (overrides ROAM_TIMEOUT_SECONDS)")
 
+	root.AddCommand(newStatusCmd())
 	root.AddCommand(newGetCmd())
 	root.AddCommand(newSearchCmd())
 	root.AddCommand(newQCmd())
