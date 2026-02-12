@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	"github.com/itchyny/gojq"
 )
 
 func prettyPrint(v any) error {
@@ -46,4 +48,34 @@ func readQueryArgOrStdin(queryArg string) (string, error) {
 		return "", fmt.Errorf("empty query")
 	}
 	return q, nil
+}
+
+func applyJQ(input any, expr string) (any, error) {
+	expr = strings.TrimSpace(expr)
+	if expr == "" {
+		return input, nil
+	}
+	query, err := gojq.Parse(expr)
+	if err != nil {
+		return nil, err
+	}
+	iter := query.Run(input)
+	results := []any{}
+	for {
+		v, ok := iter.Next()
+		if !ok {
+			break
+		}
+		if err, ok := v.(error); ok {
+			return nil, err
+		}
+		results = append(results, v)
+	}
+	if len(results) == 0 {
+		return nil, nil
+	}
+	if len(results) == 1 {
+		return results[0], nil
+	}
+	return results, nil
 }

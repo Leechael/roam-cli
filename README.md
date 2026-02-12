@@ -116,6 +116,8 @@ This generates cross-platform artifacts in `dist/`:
 ```bash
 # health/status check
 ./roam-cli status
+./roam-cli status --json
+./roam-cli status --jq '.ok'
 
 # get by page title or uid
 ./roam-cli get "Page Title"
