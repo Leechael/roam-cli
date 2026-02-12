@@ -1,0 +1,46 @@
+name: Release on Tag
+
+on:
+  push:
+    tags:
+      - "roam-cli-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build cross-platform artifacts
+        run: |
+          mkdir -p dist
+          for os in darwin linux; do
+            for arch in amd64 arm64; do
+              out="dist/roam-cli-${os}-${arch}"
+              GOOS=$os GOARCH=$arch go build -o "$out" ./cmd/roam-cli
+              tar -czf "${out}.tar.gz" -C dist "$(basename "$out")"
+              rm -f "$out"
+            done
+          done
+          (cd dist && shasum -a 256 ./*.tar.gz > checksums.txt)
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/checksums.txt
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}

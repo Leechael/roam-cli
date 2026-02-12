@@ -1,0 +1,22 @@
+[
+  {
+    "action": "create-page",
+    "page": {
+      "title": "Roam CLI Example Page",
+      "uid": "examplepageuid123",
+      "children-view-type": "bullet"
+    }
+  },
+  {
+    "action": "create-block",
+    "location": {
+      "parent-uid": "examplepageuid123",
+      "order": "last"
+    },
+    "block": {
+      "uid": "exampleblockuid123",
+      "string": "Hello from batch actions",
+      "open": true
+    }
+  }
+]

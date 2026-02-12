@@ -1,0 +1,11 @@
+# Binaries
+roam-cli
+*.exe
+*.test
+*.out
+
+# Build artifacts
+dist/
+
+# OS
+.DS_Store

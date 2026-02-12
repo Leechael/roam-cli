@@ -1,0 +1,60 @@
+BINARY_NAME := roam-cli
+OUT_DIR := dist
+CMD := ./cmd/roam-cli
+GOFLAGS ?= -buildvcs=false
+
+export GOFLAGS
+
+.PHONY: tidy fmt test bdd-test ci build run install clean cross-build help
+
+help:
+	@echo "Targets:"
+	@echo "  make tidy         - go mod tidy"
+	@echo "  make fmt          - gofmt ./cmd ./internal"
+	@echo "  make test         - run unit tests"
+	@echo "  make bdd-test     - run BDD tests"
+	@echo "  make ci           - fmt check + vet + tests + build"
+	@echo "  make build        - build local binary to ./$(BINARY_NAME)"
+	@echo "  make run          - run CLI (pass ARGS='...')"
+	@echo "  make install      - install binary to GOPATH/bin"
+	@echo "  make clean        - remove build artifacts"
+	@echo "  make cross-build  - build darwin/linux amd64/arm64 binaries"
+
+tidy:
+	go mod tidy
+
+fmt:
+	gofmt -w ./cmd ./internal ./tests
+
+test:
+	go test ./... -count=1
+
+bdd-test:
+	go test -tags=bdd ./tests/bdd/... -count=1
+
+ci:
+	@unformatted=$$(gofmt -l ./cmd ./internal ./tests); \
+	if [ -n "$$unformatted" ]; then echo "Unformatted files:"; echo "$$unformatted"; exit 1; fi
+	go vet ./...
+	go test ./... -count=1
+	go test -tags=bdd ./tests/bdd/... -count=1
+	go build -v $(CMD)
+
+build:
+	go build -o $(BINARY_NAME) $(CMD)
+
+run:
+	go run $(CMD) $(ARGS)
+
+install:
+	go install $(CMD)
+
+clean:
+	rm -rf $(OUT_DIR) $(BINARY_NAME)
+
+cross-build: clean
+	mkdir -p $(OUT_DIR)
+	GOOS=darwin GOARCH=amd64 go build -o $(OUT_DIR)/$(BINARY_NAME)-darwin-amd64 $(CMD)
+	GOOS=darwin GOARCH=arm64 go build -o $(OUT_DIR)/$(BINARY_NAME)-darwin-arm64 $(CMD)
+	GOOS=linux GOARCH=amd64 go build -o $(OUT_DIR)/$(BINARY_NAME)-linux-amd64 $(CMD)
+	GOOS=linux GOARCH=arm64 go build -o $(OUT_DIR)/$(BINARY_NAME)-linux-arm64 $(CMD)

@@ -1,0 +1,3 @@
+[:find ?title
+ :where
+ [?e :node/title ?title]]
