@@ -61,6 +61,8 @@ In this standalone repo, workflows live under `.github/workflows`:
 - `release-on-tag.yml`: auto GitHub Release on tag `roam-cli-v*`
 - `release-command.yml`: trigger release tag by PR comment command
 
+Yes, CI is already in place.
+
 PR comment release command:
 
 ```text
@@ -72,6 +74,29 @@ Examples:
 - `!release minor beta`
 
 Manual dispatch is also supported in Actions (`Release Command` workflow).
+
+## Pre-commit Hook (prek)
+
+This repo uses `prek` with `prek.toml`.
+
+Setup:
+
+```bash
+cd roamresearch-skills
+./scripts/setup-hooks.sh
+```
+
+What runs on pre-commit:
+- gofmt check
+- go vet
+- unit tests (`go test ./...`)
+- basic text/yaml hygiene hooks from `pre-commit-hooks`
+
+You can run manually:
+
+```bash
+prek run --config prek.toml --all-files
+```
 
 ## Release (local)
 

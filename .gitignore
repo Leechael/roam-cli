@@ -9,3 +9,7 @@ dist/
 
 # OS
 .DS_Store
+
+# pre-commit / prek cache
+.pre-commit-cache/
+.prek/

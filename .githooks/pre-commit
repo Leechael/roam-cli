@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if command -v prek >/dev/null 2>&1; then
+  exec prek run --config prek.toml
+fi
+
+echo "Error: 'prek' is not installed." >&2
+echo "Install: https://prek.j178.dev/quickstart/" >&2
+echo "Then run: ./scripts/setup-hooks.sh" >&2
+exit 1
