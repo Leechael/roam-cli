@@ -107,6 +107,8 @@ jobs:
         github.event_name == 'workflow_dispatch'
       )
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
     concurrency:
       group: release-roam-cli
       cancel-in-progress: false
@@ -158,7 +160,7 @@ jobs:
               `- Source ref: \`${process.env.SOURCE_REF}\``,
               `- Requested by: @${process.env.REQUESTED_BY}`,
               '',
-              `GitHub Release workflow will run automatically from this tag.`
+              `Building release artifacts...`
             ].join('\n');
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -180,4 +182,98 @@ jobs:
               repo: context.repo.repo,
               issue_number: Number(process.env.ISSUE_NUMBER),
               body: `❌ Failed to create release tag. Logs: ${runUrl}`
+            });
+
+  build-release:
+    needs: [parse, create-tag]
+    if: needs.create-tag.result == 'success'
+    runs-on: ubuntu-latest
+    env:
+      ISSUE_NUMBER: ${{ needs.parse.outputs.issue_number }}
+      RELEASE_TAG: ${{ needs.create-tag.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build cross-platform artifacts
+        run: |
+          mkdir -p dist
+          for os in darwin linux; do
+            for arch in amd64 arm64; do
+              out="dist/roam-cli-${os}-${arch}"
+              GOOS=$os GOARCH=$arch go build -o "$out" ./cmd/roam-cli
+              tar -czf "${out}.tar.gz" -C dist "$(basename "$out")"
+              rm -f "$out"
+            done
+          done
+          (cd dist && sha256sum ./*.tar.gz > checksums.txt)
+
+      - name: Generate CHANGELOG.md
+        run: |
+          current_tag="${RELEASE_TAG}"
+          previous_tag=$(git tag -l 'roam-cli-v*' --sort=-version:refname | grep -v "^${current_tag}$" | head -n 1 || true)
+
+          {
+            echo "# Changelog"
+            echo
+            echo "## ${current_tag}"
+            echo
+            if [ -n "${previous_tag}" ]; then
+              echo "Changes since ${previous_tag}:"
+              echo
+              git log --pretty='- %s (%h)' "${previous_tag}..${current_tag}"
+            else
+              echo "Initial release changes:"
+              echo
+              git log --pretty='- %s (%h)' "${current_tag}"
+            fi
+          } > dist/CHANGELOG.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          body_path: dist/CHANGELOG.md
+          files: |
+            dist/*.tar.gz
+            dist/checksums.txt
+            dist/CHANGELOG.md
+          prerelease: ${{ contains(env.RELEASE_TAG, '-alpha.') || contains(env.RELEASE_TAG, '-beta.') || contains(env.RELEASE_TAG, '-rc.') }}
+
+      - name: Comment release success
+        if: success() && env.ISSUE_NUMBER != ''
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.ISSUE_NUMBER),
+              body: `📦 GitHub Release created: https://github.com/${context.repo.owner}/${context.repo.repo}/releases/tag/${process.env.RELEASE_TAG}`
+            });
+
+      - name: Comment release failure
+        if: failure() && env.ISSUE_NUMBER != ''
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.ISSUE_NUMBER),
+              body: `❌ Failed to build release artifacts. Logs: ${runUrl}`
             });
