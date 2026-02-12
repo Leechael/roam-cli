@@ -45,7 +45,14 @@ func (s *cliState) aMockRoamAPIServer() error {
 }
 
 func (s *cliState) roamCLIEnvIsConfiguredForTheMockServer() error {
-	s.env = append(os.Environ(),
+	baseEnv := make([]string, 0, len(os.Environ()))
+	for _, kv := range os.Environ() {
+		if strings.HasPrefix(kv, "ROAM_API_TOKEN=") || strings.HasPrefix(kv, "ROAM_API_GRAPH=") || strings.HasPrefix(kv, "ROAM_API_BASE_URL=") {
+			continue
+		}
+		baseEnv = append(baseEnv, kv)
+	}
+	s.env = append(baseEnv,
 		"ROAM_API_TOKEN=test-token",
 		"ROAM_API_GRAPH=testgraph",
 		"ROAM_API_BASE_URL="+s.baseURL,

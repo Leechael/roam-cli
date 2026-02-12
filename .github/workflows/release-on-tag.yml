@@ -34,7 +34,7 @@ jobs:
               rm -f "$out"
             done
           done
-          (cd dist && shasum -a 256 ./*.tar.gz > checksums.txt)
+          (cd dist && sha256sum ./*.tar.gz > checksums.txt)
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

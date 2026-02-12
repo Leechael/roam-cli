@@ -12,6 +12,8 @@ permissions:
 jobs:
   test-build:
     runs-on: ubuntu-latest
+    env:
+      GOFLAGS: -buildvcs=false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
