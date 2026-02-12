@@ -17,7 +17,10 @@ make cross-build
 
 mkdir -p dist
 for f in dist/roam-cli-*; do
-  tar -czf "${f}-${VERSION}.tar.gz" -C dist "$(basename "$f")"
+  tmpdir=$(mktemp -d)
+  cp "$f" "$tmpdir/roam-cli"
+  tar -czf "${f}-${VERSION}.tar.gz" -C "$tmpdir" roam-cli
+  rm -rf "$tmpdir"
 done
 
 ( cd dist && shasum -a 256 ./*.tar.gz > checksums.txt )

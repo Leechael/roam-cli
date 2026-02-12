@@ -28,10 +28,11 @@ jobs:
           mkdir -p dist
           for os in darwin linux; do
             for arch in amd64 arm64; do
-              out="dist/roam-cli-${os}-${arch}"
-              GOOS=$os GOARCH=$arch go build -o "$out" ./cmd/roam-cli
-              tar -czf "${out}.tar.gz" -C dist "$(basename "$out")"
-              rm -f "$out"
+              artifact="dist/roam-cli-${os}-${arch}.tar.gz"
+              tmpdir=$(mktemp -d)
+              GOOS=$os GOARCH=$arch go build -o "$tmpdir/roam-cli" ./cmd/roam-cli
+              tar -czf "$artifact" -C "$tmpdir" roam-cli
+              rm -rf "$tmpdir"
             done
           done
           (cd dist && sha256sum ./*.tar.gz > checksums.txt)
