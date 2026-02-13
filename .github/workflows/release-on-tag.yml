@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*" # keep in sync with TAG_PREFIX in release-naming.env
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g. v1.2.3)"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -13,10 +19,12 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GOFLAGS: -buildvcs=false
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ env.RELEASE_TAG }}
           fetch-depth: 0
 
       - name: Setup Go
@@ -51,7 +59,7 @@ jobs:
       - name: Generate CHANGELOG.md
         run: |
           source release-naming.env
-          current_tag="${GITHUB_REF_NAME}"
+          current_tag="${RELEASE_TAG}"
           previous_tag=$(git tag -l "${TAG_PREFIX}*" --sort=-version:refname | grep -v "^${current_tag}$" | head -n 1 || true)
 
           {
@@ -73,9 +81,10 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
           body_path: dist/CHANGELOG.md
           files: |
             dist/*.tar.gz
             dist/checksums.txt
             dist/CHANGELOG.md
-          prerelease: ${{ contains(github.ref_name, '-alpha.') || contains(github.ref_name, '-beta.') || contains(github.ref_name, '-rc.') }}
+          prerelease: ${{ contains(env.RELEASE_TAG, '-alpha.') || contains(env.RELEASE_TAG, '-beta.') || contains(env.RELEASE_TAG, '-rc.') }}
