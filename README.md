@@ -18,7 +18,10 @@ It supports:
 
 ```bash
 gh release list -R Leechael/roamresearch-skills
-gh release download -R Leechael/roamresearch-skills --pattern 'roam-cli-*.tar.gz'
+TAG="roam-cli-vX.Y.Z"
+./scripts/print-release-download.sh "$TAG"
+# Example output:
+# gh release download "$TAG" --pattern "roam-cli-*.tar.gz"
 ```
 
 Extract the archive for your platform and place `roam-cli` in your `PATH`.
@@ -55,7 +58,7 @@ Validate setup before use:
 ```bash
 roam-cli status
 roam-cli status --json
-roam-cli status --jq '.ok'
+roam-cli status --json --jq '.ok'
 ```
 
 ---
@@ -71,6 +74,13 @@ roam-cli status --jq '.ok'
 - `save` (`save-markdown`) — save markdown as a page
 - `journal` (`get-journaling-by-date`, `journaling`) — read daily journaling blocks
 
+### Output modes
+
+- Parseable output is available via `--json`.
+- Human-readable output is available via `--plain` (or default plain output when omitted).
+- `--json` and `--plain` are mutually exclusive.
+- `--jq` requires `--json` (supported on `status` and `q`).
+
 ### Low-level commands
 
 - `block create|update|delete|get`
@@ -81,28 +91,36 @@ roam-cli status --jq '.ok'
 ## Usage examples
 
 ```bash
+# status
+roam-cli status --plain
+roam-cli status --json
+roam-cli status --json --jq '.ok'
+
 # read
-roam-cli get "Page Title"
-roam-cli get "((block-uid))"
+roam-cli get "Page Title" --plain
+roam-cli get "((block-uid))" --json
 
 # search
-roam-cli search term1 term2 --limit 20
+roam-cli search term1 term2 --limit 20 --plain
+roam-cli search term1 term2 --limit 20 --json
 
 # query
-roam-cli q '[:find ?title :where [?e :node/title ?title]]'
+roam-cli q '[:find ?title :where [?e :node/title ?title]]' --json
+roam-cli q '[:find ?title :where [?e :node/title ?title]]' --json --jq '.[0]'
 
 # save markdown
-roam-cli save --title "New Page" --file ./examples/note.md
-cat ./examples/note.md | roam-cli save --title "New Page"
+roam-cli save --title "New Page" --file ./examples/note.md --json
+cat ./examples/note.md | roam-cli save --title "New Page" --plain
 
 # journal
-roam-cli journal --date 2026-02-12
+roam-cli journal --date 2026-02-12 --plain
+roam-cli journal --date 2026-02-12 --json
 
 # low-level block
-roam-cli block create --parent "02-12-2026" --text "hello"
+roam-cli block create --parent "02-12-2026" --text "hello" --json
 
 # low-level batch
-roam-cli batch run --file ./examples/actions.create-page-and-block.json
+roam-cli batch run --file ./examples/actions.create-page-and-block.json --json
 ```
 
 ---

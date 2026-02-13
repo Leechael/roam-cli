@@ -14,13 +14,17 @@ import (
 func newJournalCmd() *cobra.Command {
 	var date string
 	var topic string
-	var raw bool
+	var asJSON bool
+	var asPlain bool
 
 	cmd := &cobra.Command{
 		Use:     "journal",
 		Aliases: []string{"get-journaling-by-date", "journaling"},
 		Short:   "Get journaling blocks from Daily Notes",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if asJSON && asPlain {
+				return fmt.Errorf("--json and --plain cannot be used together")
+			}
 			when, err := parseDateFlexible(date)
 			if err != nil {
 				return err
@@ -40,7 +44,7 @@ func newJournalCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if raw {
+			if asJSON {
 				return prettyPrint(nodes)
 			}
 			fmt.Println(format.FormatJournal(nodes, topic != ""))
@@ -50,7 +54,8 @@ func newJournalCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&date, "date", "", "Date string, defaults to today")
 	cmd.Flags().StringVar(&topic, "topic", "", "Topic node override")
-	cmd.Flags().BoolVar(&raw, "raw", false, "Output raw JSON")
+	cmd.Flags().BoolVar(&asJSON, "json", false, "Output journal data as JSON")
+	cmd.Flags().BoolVar(&asPlain, "plain", false, "Output journal data as plain text")
 	return cmd
 }
 

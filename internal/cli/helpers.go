@@ -79,3 +79,10 @@ func applyJQ(input any, expr string) (any, error) {
 	}
 	return results, nil
 }
+
+func validateOutputFlags(asJSON, asPlain bool) error {
+	if asJSON && asPlain {
+		return fmt.Errorf("--json and --plain cannot be used together")
+	}
+	return nil
+}

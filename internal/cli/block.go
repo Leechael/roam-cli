@@ -25,11 +25,16 @@ func newBlockCmd() *cobra.Command {
 func newBlockCreateCmd() *cobra.Command {
 	var parentUID, text, uid, order string
 	var open bool
+	var asJSON bool
+	var asPlain bool
 
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a block",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := validateOutputFlags(asJSON, asPlain); err != nil {
+				return err
+			}
 			if parentUID == "" {
 				return errMissingFlag("parent")
 			}
@@ -49,6 +54,10 @@ func newBlockCreateCmd() *cobra.Command {
 			}
 
 			uidOut := action["block"].(map[string]any)["uid"]
+			if asPlain {
+				fmt.Printf("%v\n", uidOut)
+				return nil
+			}
 			return prettyPrint(map[string]any{"uid": uidOut, "response": resp})
 		},
 	}
@@ -58,17 +67,24 @@ func newBlockCreateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&uid, "uid", "", "Optional uid")
 	cmd.Flags().StringVar(&order, "order", "last", "Order: first|last|<int>")
 	cmd.Flags().BoolVar(&open, "open", true, "Block open state")
+	cmd.Flags().BoolVar(&asJSON, "json", false, "Output create result as JSON")
+	cmd.Flags().BoolVar(&asPlain, "plain", false, "Output create result as plain text")
 
 	return cmd
 }
 
 func newBlockUpdateCmd() *cobra.Command {
 	var uid, text string
+	var asJSON bool
+	var asPlain bool
 
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Update a block text",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := validateOutputFlags(asJSON, asPlain); err != nil {
+				return err
+			}
 			if uid == "" {
 				return errMissingFlag("uid")
 			}
@@ -83,23 +99,34 @@ func newBlockUpdateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if asPlain {
+				fmt.Printf("%s\n", uid)
+				return nil
+			}
 			return prettyPrint(map[string]any{"uid": uid, "response": resp})
 		},
 	}
 
 	cmd.Flags().StringVar(&uid, "uid", "", "Block uid")
 	cmd.Flags().StringVar(&text, "text", "", "New block text")
+	cmd.Flags().BoolVar(&asJSON, "json", false, "Output update result as JSON")
+	cmd.Flags().BoolVar(&asPlain, "plain", false, "Output update result as plain text")
 
 	return cmd
 }
 
 func newBlockDeleteCmd() *cobra.Command {
 	var uid string
+	var asJSON bool
+	var asPlain bool
 
 	cmd := &cobra.Command{
 		Use:   "delete",
 		Short: "Delete a block",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := validateOutputFlags(asJSON, asPlain); err != nil {
+				return err
+			}
 			if uid == "" {
 				return errMissingFlag("uid")
 			}
@@ -111,21 +138,32 @@ func newBlockDeleteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if asPlain {
+				fmt.Printf("%s\n", uid)
+				return nil
+			}
 			return prettyPrint(map[string]any{"uid": uid, "response": resp})
 		},
 	}
 
 	cmd.Flags().StringVar(&uid, "uid", "", "Block uid")
+	cmd.Flags().BoolVar(&asJSON, "json", false, "Output delete result as JSON")
+	cmd.Flags().BoolVar(&asPlain, "plain", false, "Output delete result as plain text")
 	return cmd
 }
 
 func newBlockGetCmd() *cobra.Command {
 	var uid string
+	var asJSON bool
+	var asPlain bool
 
 	cmd := &cobra.Command{
 		Use:   "get",
 		Short: "Get block recursively by uid",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := validateOutputFlags(asJSON, asPlain); err != nil {
+				return err
+			}
 			if uid == "" {
 				return errMissingFlag("uid")
 			}
@@ -144,10 +182,16 @@ func newBlockGetCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if asPlain {
+				fmt.Printf("%v\n", result)
+				return nil
+			}
 			return prettyPrint(result)
 		},
 	}
 
 	cmd.Flags().StringVar(&uid, "uid", "", "Block uid")
+	cmd.Flags().BoolVar(&asJSON, "json", false, "Output block data as JSON")
+	cmd.Flags().BoolVar(&asPlain, "plain", false, "Output block data as plain text")
 	return cmd
 }

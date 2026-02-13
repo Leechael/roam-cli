@@ -15,12 +15,17 @@ func newSaveCmd() *cobra.Command {
 	var file string
 	var useStdin bool
 	var pageUID string
+	var asJSON bool
+	var asPlain bool
 
 	cmd := &cobra.Command{
 		Use:     "save",
 		Aliases: []string{"save-markdown"},
 		Short:   "Save markdown as a Roam page",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := validateOutputFlags(asJSON, asPlain); err != nil {
+				return err
+			}
 			if strings.TrimSpace(title) == "" {
 				return errMissingFlag("title")
 			}
@@ -47,12 +52,17 @@ func newSaveCmd() *cobra.Command {
 				return err
 			}
 
-			return prettyPrint(map[string]any{
+			payload := map[string]any{
 				"title":    title,
 				"page_uid": pageUID,
 				"actions":  len(actions),
 				"response": resp,
-			})
+			}
+			if asPlain {
+				fmt.Printf("saved page %q (%s) with %d actions\n", title, pageUID, len(actions))
+				return nil
+			}
+			return prettyPrint(payload)
 		},
 	}
 
@@ -60,5 +70,7 @@ func newSaveCmd() *cobra.Command {
 	cmd.Flags().StringVar(&file, "file", "", "Markdown file path (default: stdin)")
 	cmd.Flags().BoolVar(&useStdin, "stdin", false, "Read markdown from stdin")
 	cmd.Flags().StringVar(&pageUID, "uid", "", "Optional page uid")
+	cmd.Flags().BoolVar(&asJSON, "json", false, "Output save result as JSON")
+	cmd.Flags().BoolVar(&asPlain, "plain", false, "Output save result as plain text")
 	return cmd
 }

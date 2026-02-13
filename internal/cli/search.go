@@ -11,12 +11,18 @@ func newSearchCmd() *cobra.Command {
 	var page string
 	var ignoreCase bool
 	var limit int
+	var asJSON bool
+	var asPlain bool
 
 	cmd := &cobra.Command{
 		Use:   "search <terms...>",
 		Short: "Search blocks containing all terms",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if asJSON && asPlain {
+				return fmt.Errorf("--json and --plain cannot be used together")
+			}
+
 			client, err := mustClient()
 			if err != nil {
 				return err
@@ -25,6 +31,9 @@ func newSearchCmd() *cobra.Command {
 			results, err := client.SearchBlocks(args, limit, !ignoreCase, page)
 			if err != nil {
 				return err
+			}
+			if asJSON {
+				return prettyPrint(results)
 			}
 			if len(results) == 0 {
 				fmt.Println("No results found.")
@@ -59,5 +68,7 @@ func newSearchCmd() *cobra.Command {
 	cmd.Flags().StringVar(&page, "page", "", "Limit to page title")
 	cmd.Flags().BoolVarP(&ignoreCase, "ignore-case", "i", false, "Case-insensitive search")
 	cmd.Flags().IntVar(&limit, "limit", 20, "Maximum results")
+	cmd.Flags().BoolVar(&asJSON, "json", false, "Output search results as JSON")
+	cmd.Flags().BoolVar(&asPlain, "plain", false, "Output search results as plain text")
 	return cmd
 }
