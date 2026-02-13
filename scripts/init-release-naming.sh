@@ -41,7 +41,7 @@ cat > "$dest" <<'EOF'
 # Single source of truth for release naming used by docs/scripts/workflows.
 CLI_NAME=roam-cli
 BINARY_NAME=roam-cli
-TAG_PREFIX=roam-cli-v
+TAG_PREFIX=v
 ARTIFACT_GLOB=roam-cli-*.tar.gz
 EOF
 

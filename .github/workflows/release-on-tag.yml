@@ -3,7 +3,7 @@ name: Release on Tag
 on:
   push:
     tags:
-      - "roam-cli-v*" # keep in sync with TAG_PREFIX in release-naming.env
+      - "v*" # keep in sync with TAG_PREFIX in release-naming.env
 
 permissions:
   contents: write
