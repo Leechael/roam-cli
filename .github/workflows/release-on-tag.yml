@@ -3,7 +3,7 @@ name: Release on Tag
 on:
   push:
     tags:
-      - "roam-cli-v*"
+      - "roam-cli-v*" # keep in sync with TAG_PREFIX in release-naming.env
 
 permissions:
   contents: write
@@ -11,6 +11,8 @@ permissions:
 jobs:
   build-release:
     runs-on: ubuntu-latest
+    env:
+      GOFLAGS: -buildvcs=false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,15 +25,24 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Validate naming contract
+        run: |
+          test -f release-naming.env
+          source release-naming.env
+          test -n "$BINARY_NAME"
+          test -n "$TAG_PREFIX"
+          test -n "$ARTIFACT_GLOB"
+
       - name: Build cross-platform artifacts
         run: |
+          source release-naming.env
           mkdir -p dist
           for os in darwin linux; do
             for arch in amd64 arm64; do
-              artifact="dist/roam-cli-${os}-${arch}.tar.gz"
+              artifact="dist/${BINARY_NAME}-${os}-${arch}.tar.gz"
               tmpdir=$(mktemp -d)
-              GOOS=$os GOARCH=$arch go build -o "$tmpdir/roam-cli" ./cmd/roam-cli
-              tar -czf "$artifact" -C "$tmpdir" roam-cli
+              GOOS=$os GOARCH=$arch go build -o "$tmpdir/${BINARY_NAME}" ./cmd/roam-cli
+              tar -czf "$artifact" -C "$tmpdir" "$BINARY_NAME"
               rm -rf "$tmpdir"
             done
           done
@@ -39,8 +50,9 @@ jobs:
 
       - name: Generate CHANGELOG.md
         run: |
+          source release-naming.env
           current_tag="${GITHUB_REF_NAME}"
-          previous_tag=$(git tag -l 'roam-cli-v*' --sort=-version:refname | grep -v "^${current_tag}$" | head -n 1 || true)
+          previous_tag=$(git tag -l "${TAG_PREFIX}*" --sort=-version:refname | grep -v "^${current_tag}$" | head -n 1 || true)
 
           {
             echo "# Changelog"

@@ -10,13 +10,18 @@ import (
 )
 
 func newGetCmd() *cobra.Command {
-	var raw bool
+	var asJSON bool
+	var asPlain bool
 
 	cmd := &cobra.Command{
 		Use:   "get <identifier>",
 		Short: "Get page by title or block by uid",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if asJSON && asPlain {
+				return fmt.Errorf("--json and --plain cannot be used together")
+			}
+
 			identifier := args[0]
 			client, err := mustClient()
 			if err != nil {
@@ -42,7 +47,7 @@ func newGetCmd() *cobra.Command {
 				return fmt.Errorf("not found: %s", identifier)
 			}
 
-			if raw {
+			if asJSON {
 				return prettyPrint(result)
 			}
 
@@ -57,7 +62,8 @@ func newGetCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&raw, "raw", false, "Output raw JSON")
+	cmd.Flags().BoolVar(&asJSON, "json", false, "Output raw JSON")
+	cmd.Flags().BoolVar(&asPlain, "plain", false, "Output plain markdown")
 	return cmd
 }
 

@@ -25,11 +25,25 @@ if [[ -n "$PRE" ]]; then
   esac
 fi
 
-latest_tag=$(git tag -l 'roam-cli-v*' --sort=-version:refname | head -n1)
+env_file="release-naming.env"
+if [[ ! -f "$env_file" ]]; then
+  echo "missing naming contract file: $env_file" >&2
+  exit 1
+fi
+
+# shellcheck disable=SC1090
+source "$env_file"
+
+if [[ -z "${TAG_PREFIX:-}" ]]; then
+  echo "TAG_PREFIX is empty in $env_file" >&2
+  exit 1
+fi
+
+latest_tag=$(git tag -l "${TAG_PREFIX}*" --sort=-version:refname | head -n1)
 if [[ -z "$latest_tag" ]]; then
   base_version="0.0.0"
 else
-  base_version="${latest_tag#roam-cli-v}"
+  base_version="${latest_tag#${TAG_PREFIX}}"
   base_version="${base_version%%-*}"
 fi
 

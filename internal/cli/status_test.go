@@ -19,12 +19,7 @@ func TestStatusJSONFailureReturnsError(t *testing.T) {
 	}
 }
 
-func TestStatusJQFailureReturnsError(t *testing.T) {
-	// Ensure no credentials are available from env or flags.
-	t.Setenv("ROAM_API_TOKEN", "")
-	t.Setenv("ROAM_API_GRAPH", "")
-	t.Setenv("ROAM_API_BASE_URL", "")
-	t.Setenv("ROAM_TIMEOUT_SECONDS", "")
+func TestStatusJQRequiresJSON(t *testing.T) {
 	opts = globalOptions{}
 
 	cmd := newStatusCmd()
@@ -32,6 +27,6 @@ func TestStatusJQFailureReturnsError(t *testing.T) {
 
 	err := cmd.Execute()
 	if err == nil {
-		t.Fatal("expected non-nil error when status check fails with --jq")
+		t.Fatal("expected non-nil error when --jq is used without --json")
 	}
 }
