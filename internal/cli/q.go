@@ -49,11 +49,11 @@ func newQCmd() *cobra.Command {
 				}
 				return prettyPrint(filtered)
 			}
-			if asPlain {
-				fmt.Printf("%v\n", result)
-				return nil
+			if asJSON {
+				return prettyPrint(result)
 			}
-			return prettyPrint(result)
+			fmt.Printf("%v\n", result)
+			return nil
 		},
 	}
 

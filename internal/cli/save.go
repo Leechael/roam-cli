@@ -58,11 +58,11 @@ func newSaveCmd() *cobra.Command {
 				"actions":  len(actions),
 				"response": resp,
 			}
-			if asPlain {
-				fmt.Printf("saved page %q (%s) with %d actions\n", title, pageUID, len(actions))
-				return nil
+			if asJSON {
+				return prettyPrint(payload)
 			}
-			return prettyPrint(payload)
+			fmt.Printf("saved page %q (%s) with %d actions\n", title, pageUID, len(actions))
+			return nil
 		},
 	}
 

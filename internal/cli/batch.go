@@ -48,11 +48,11 @@ func newBatchCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if asPlain {
-				fmt.Printf("ok (%d actions)\n", len(actions))
-				return nil
+			if asJSON {
+				return prettyPrint(resp)
 			}
-			return prettyPrint(resp)
+			fmt.Printf("ok (%d actions)\n", len(actions))
+			return nil
 		},
 	}
 
