@@ -22,6 +22,7 @@ on:
         type: string
 
 permissions:
+  actions: write
   contents: write
   issues: write
   pull-requests: read
@@ -148,6 +149,21 @@ jobs:
           fi
           git tag "$tag"
           git push origin "$tag"
+
+      - name: Trigger release workflow for new tag
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'release-on-tag.yml',
+              ref: 'main',
+              inputs: {
+                tag: '${{ steps.version.outputs.tag }}'
+              }
+            });
 
       - name: Comment success
         if: success() && env.ISSUE_NUMBER != ''
