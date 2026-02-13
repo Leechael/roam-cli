@@ -11,15 +11,17 @@ if [[ -z "$VERSION" ]]; then
   exit 1
 fi
 
+source release-naming.env
+
 make tidy
 make fmt
 make cross-build
 
 mkdir -p dist
-for f in dist/roam-cli-*; do
+for f in "dist/${BINARY_NAME}-"*; do
   tmpdir=$(mktemp -d)
-  cp "$f" "$tmpdir/roam-cli"
-  tar -czf "${f}-${VERSION}.tar.gz" -C "$tmpdir" roam-cli
+  cp "$f" "$tmpdir/$BINARY_NAME"
+  tar -czf "${f}-${VERSION}.tar.gz" -C "$tmpdir" "$BINARY_NAME"
   rm -rf "$tmpdir"
 done
 
