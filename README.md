@@ -18,7 +18,7 @@ It supports:
 
 ```bash
 gh release list -R Leechael/roamresearch-skills
-TAG="roam-cli-vX.Y.Z"
+TAG="vX.Y.Z"
 ./scripts/print-release-download.sh "$TAG"
 # Example output:
 # gh release download "$TAG" --pattern "roam-cli-*.tar.gz"

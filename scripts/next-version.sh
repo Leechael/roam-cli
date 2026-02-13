@@ -40,10 +40,26 @@ if [[ -z "${TAG_PREFIX:-}" ]]; then
 fi
 
 latest_tag=$(git tag -l "${TAG_PREFIX}*" --sort=-version:refname | head -n1)
+
+# Migration fallback: if moved from legacy "roam-cli-v" tags to "v" tags,
+# keep semver continuity without rewriting old tags.
+if [[ -z "$latest_tag" && "${TAG_PREFIX}" == "v" ]]; then
+  legacy_latest_tag=$(git tag -l "roam-cli-v*" --sort=-version:refname | head -n1)
+  if [[ -n "$legacy_latest_tag" ]]; then
+    latest_tag="$legacy_latest_tag"
+  fi
+fi
+
 if [[ -z "$latest_tag" ]]; then
   base_version="0.0.0"
 else
-  base_version="${latest_tag#${TAG_PREFIX}}"
+  if [[ "$latest_tag" == ${TAG_PREFIX}* ]]; then
+    base_version="${latest_tag#${TAG_PREFIX}}"
+  elif [[ "$latest_tag" == roam-cli-v* ]]; then
+    base_version="${latest_tag#roam-cli-v}"
+  else
+    base_version="0.0.0"
+  fi
   base_version="${base_version%%-*}"
 fi
 
