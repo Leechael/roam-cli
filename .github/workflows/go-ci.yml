@@ -47,14 +47,22 @@ jobs:
       - name: Vet
         run: go vet ./...
 
+      - name: Setup Python (for prek)
+        if: ${{ hashFiles('prek.toml') != '' || hashFiles('.pre-commit-config.yaml') != '' || hashFiles('.pre-commit-config.yml') != '' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install prek
+        if: ${{ hashFiles('prek.toml') != '' || hashFiles('.pre-commit-config.yaml') != '' || hashFiles('.pre-commit-config.yml') != '' }}
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install prek
+          prek --version
+
       - name: Pre-commit checks (prek)
         if: ${{ hashFiles('prek.toml') != '' || hashFiles('.pre-commit-config.yaml') != '' || hashFiles('.pre-commit-config.yml') != '' }}
         run: |
-          if ! command -v prek >/dev/null 2>&1; then
-            echo "pre-commit config detected, but prek is not installed." >&2
-            echo "Install prek in the runner image before enabling this gate." >&2
-            exit 1
-          fi
           prek validate-config
           prek run --all-files
 
