@@ -15,14 +15,16 @@ Use this skill to perform Roam Research read/write/query workflows through `roam
 Preferred: install from GitHub Releases of this repository.
 
 ```bash
-# Inspect releases
+# 1) Inspect releases
 gh release list -R Leechael/roamresearch-skills
 
-# Download latest release artifacts
+# 2) Download latest artifacts
 gh release download -R Leechael/roamresearch-skills --pattern 'roam-cli-*.tar.gz'
-```
 
-Then extract the artifact for your platform and put `roam-cli` in your `PATH`.
+# 3) Extract your platform artifact and install binary
+tar -xzf roam-cli-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz
+install -m 0755 roam-cli /usr/local/bin/roam-cli
+```
 
 Quick check:
 

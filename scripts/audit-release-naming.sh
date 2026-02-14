@@ -18,7 +18,7 @@ fi
 # shellcheck disable=SC1090
 source "$env_file"
 
-for key in CLI_NAME BINARY_NAME TAG_PREFIX ARTIFACT_GLOB; do
+for key in CLI_NAME BINARY_NAME TAG_PREFIX ARTIFACT_GLOB BUILD_TARGET; do
   if [[ -z "${!key:-}" ]]; then
     echo "release-naming.env missing value: $key" >&2
     exit 1
@@ -37,7 +37,7 @@ for f in "$workflows_dir/release-command.yml" "$workflows_dir/release-on-tag.yml
     echo "missing required file: $f" >&2
     exit 1
   fi
-  if ! rg -n "release-naming.env|TAG_PREFIX|BINARY_NAME|ARTIFACT_GLOB" "$f" >/dev/null; then
+  if ! rg -n "release-naming.env|TAG_PREFIX|BINARY_NAME|ARTIFACT_GLOB|BUILD_TARGET" "$f" >/dev/null; then
     echo "file does not appear to use naming contract: $f" >&2
     exit 1
   fi

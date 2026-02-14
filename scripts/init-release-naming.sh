@@ -43,6 +43,7 @@ CLI_NAME=roam-cli
 BINARY_NAME=roam-cli
 TAG_PREFIX=v
 ARTIFACT_GLOB=roam-cli-*.tar.gz
+BUILD_TARGET=./cmd/roam-cli
 EOF
 
 echo "Created $dest"
