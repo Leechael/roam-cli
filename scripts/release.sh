@@ -15,7 +15,12 @@ source release-naming.env
 
 make tidy
 make fmt
-make cross-build
+mkdir -p dist
+for os in darwin linux; do
+  for arch in amd64 arm64; do
+    GOOS="$os" GOARCH="$arch" CGO_ENABLED=0 go build -o "dist/${BINARY_NAME}-${os}-${arch}" "$BUILD_TARGET"
+  done
+done
 
 mkdir -p dist
 for f in "dist/${BINARY_NAME}-"*; do
