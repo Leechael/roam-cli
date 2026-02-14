@@ -60,6 +60,10 @@ jobs:
               }
             };
 
+            if (!/!release\b/i.test(body)) {
+              return;
+            }
+
             if (!match) {
               await safeComment(`⚠️ @${actor} invalid command. Use: \`!release <patch|minor|major> [alpha|beta|rc]\``);
               return;
