@@ -82,6 +82,8 @@ op run --env-file=.env -- roam-cli get "Page Title"
 - Run datalog query: `roam-cli q`
 - Save markdown page: `roam-cli save` (alias: `save-markdown`)
 - Get journaling by date: `roam-cli journal`
+- Find block UID: `roam-cli block find`
+- Create nested block tree: `roam-cli block create-tree`
 - Low-level block API: `roam-cli block ...`
 - Low-level batch API: `roam-cli batch run ...`
 
@@ -129,7 +131,40 @@ roam-cli journal --date 2026-02-12
 roam-cli journal --date 2026-02-12 --topic "Work Log"
 ```
 
-### 6) Low-level block operations
+### 6) Find block UID
+
+```bash
+# Find block by text on a daily note
+roam-cli block find --text "[[📖 Daily Reading]]" --daily 2026-02-15
+
+# Find block by text on a named page
+roam-cli block find --text "Status" --page "Project Dashboard"
+```
+
+### 7) Create nested block tree
+
+```bash
+# From stdin (single object)
+echo '{"text":"headline","children":[{"text":"snapshot"}]}' | roam-cli block create-tree --parent <uid> --stdin
+
+# From stdin (array)
+echo '[{"text":"item1"},{"text":"item2","children":[{"text":"sub"}]}]' | roam-cli block create-tree --parent <uid> --stdin
+
+# From file
+roam-cli block create-tree --parent <uid> --file ./tree.json
+```
+
+### 8) Optimized daily-note workflow (2 calls)
+
+```bash
+# Step 1: Find the target block UID
+UID=$(roam-cli block find --daily 2026-02-15 --text "[[📖 Daily Reading]]")
+
+# Step 2: Create nested tree under it
+echo '{"text":"headline","children":[{"text":"snapshot"}]}' | roam-cli block create-tree --parent "$UID" --stdin
+```
+
+### 9) Low-level block operations
 
 ```bash
 roam-cli block create --parent <uid> --text "hello"
@@ -138,7 +173,7 @@ roam-cli block delete --uid <uid>
 roam-cli block get --uid <uid>
 ```
 
-### 7) Low-level batch operations
+### 10) Low-level batch operations
 
 ```bash
 roam-cli batch run --file ./examples/actions.create-page-and-block.json

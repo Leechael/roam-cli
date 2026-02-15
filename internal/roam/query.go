@@ -193,6 +193,46 @@ func relevance(item SearchResult, terms []string, caseSensitive bool) (priority 
 	return 2, text, page
 }
 
+func (c *Client) FindBlockUID(text string, pageTitle string, dailyDate *time.Time) (string, error) {
+	escaped := escapeDatalogString(text)
+	var query string
+	if dailyDate != nil {
+		dateUID := dailyDate.Format("01-02-2006")
+		query = fmt.Sprintf(`
+[:find ?uid
+ :where
+   [?p :block/uid "%s"]
+   [?b :block/page ?p]
+   [?b :block/string "%s"]
+   [?b :block/uid ?uid]]
+`, dateUID, escaped)
+	} else {
+		escapedTitle := escapeDatalogString(pageTitle)
+		query = fmt.Sprintf(`
+[:find ?uid
+ :where
+   [?p :node/title "%s"]
+   [?b :block/page ?p]
+   [?b :block/string "%s"]
+   [?b :block/uid ?uid]]
+`, escapedTitle, escaped)
+	}
+
+	result, err := c.Q(query, nil)
+	if err != nil {
+		return "", err
+	}
+	rows := toSlice(result)
+	if len(rows) == 0 {
+		return "", fmt.Errorf("block not found: %s", text)
+	}
+	first := toSlice(rows[0])
+	if len(first) == 0 {
+		return "", fmt.Errorf("block not found: %s", text)
+	}
+	return fmt.Sprintf("%v", first[0]), nil
+}
+
 func (c *Client) GetJournalingByDate(day time.Time, topicNode string) ([]map[string]any, error) {
 	dateUID := day.Format("01-02-2006")
 

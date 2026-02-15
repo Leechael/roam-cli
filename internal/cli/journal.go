@@ -3,8 +3,6 @@ package cli
 import (
 	"fmt"
 	"os"
-	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 
@@ -57,25 +55,4 @@ func newJournalCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&asJSON, "json", false, "Output journal data as JSON")
 	cmd.Flags().BoolVar(&asPlain, "plain", false, "Output journal data as plain text")
 	return cmd
-}
-
-func parseDateFlexible(v string) (time.Time, error) {
-	if strings.TrimSpace(v) == "" {
-		return time.Now(), nil
-	}
-	layouts := []string{
-		time.RFC3339,
-		time.RFC1123Z,
-		time.RFC1123,
-		"2006-01-02",
-		"2006/01/02",
-		"01-02-2006",
-		"01/02/2006",
-	}
-	for _, layout := range layouts {
-		if t, err := time.Parse(layout, strings.TrimSpace(v)); err == nil {
-			return t, nil
-		}
-	}
-	return time.Time{}, fmt.Errorf("unrecognized date format: %s", v)
 }

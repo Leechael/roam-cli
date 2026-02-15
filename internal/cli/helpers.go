@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/itchyny/gojq"
 )
@@ -85,4 +86,25 @@ func validateOutputFlags(asJSON, asPlain bool) error {
 		return fmt.Errorf("--json and --plain cannot be used together")
 	}
 	return nil
+}
+
+func parseDateFlexible(v string) (time.Time, error) {
+	if strings.TrimSpace(v) == "" {
+		return time.Now(), nil
+	}
+	layouts := []string{
+		time.RFC3339,
+		time.RFC1123Z,
+		time.RFC1123,
+		"2006-01-02",
+		"2006/01/02",
+		"01-02-2006",
+		"01/02/2006",
+	}
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, strings.TrimSpace(v)); err == nil {
+			return t, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("unrecognized date format: %s", v)
 }
