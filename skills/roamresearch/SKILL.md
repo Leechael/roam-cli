@@ -10,82 +10,25 @@ Use this skill to perform Roam Research read/write/query workflows through `roam
 
 ## Prerequisites
 
-### 1) Ensure `roam-cli` is installed
+- `roam-cli` binary in PATH
+- Environment variables: `ROAM_API_TOKEN`, `ROAM_API_GRAPH`
+- Run `roam-cli status` to verify before any operations
 
-Preferred: install from GitHub Releases of this repository.
-
-```bash
-# 1) Inspect releases
-gh release list -R Leechael/roamresearch-skills
-
-# 2) Download latest artifacts
-gh release download -R Leechael/roamresearch-skills --pattern 'roam-cli-*.tar.gz'
-
-# 3) Extract your platform artifact and install binary
-tar -xzf roam-cli-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz
-install -m 0755 roam-cli /usr/local/bin/roam-cli
-```
-
-Quick check:
-
-```bash
-roam-cli --help
-```
-
-### 2) Configure credentials
-
-Required environment variables:
-
-```bash
-export ROAM_API_TOKEN="<token>"
-export ROAM_API_GRAPH="<graph>"
-```
-
-Optional:
-
-```bash
-export ROAM_API_BASE_URL="https://api.roamresearch.com/api/graph"
-export ROAM_TIMEOUT_SECONDS="10"
-export TOPIC_NODE="<topic>"
-```
-
-### 3) Verify login/config status before operations
-
-Use the built-in status check command:
-
-```bash
-roam-cli status
-```
-
-If credentials are missing or invalid, this command will fail with guidance. Do not continue with write operations until `status` is successful.
-
-## Recommended Credential Management (1Password CLI)
-
-Prefer running `roam-cli` with the 1Password CLI (`op`) so credentials are injected at runtime instead of stored in shell profiles.
-
-Reference:
-- https://developer.1password.com/docs/service-accounts/use-with-1password-cli
-
-Example pattern:
-
-```bash
-op run --env-file=.env -- roam-cli status
-op run --env-file=.env -- roam-cli get "Page Title"
-```
-
-(Your `.env` should define `ROAM_API_TOKEN` and `ROAM_API_GRAPH` with 1Password secret references.)
+If not set up, see `references/installation.md`.
 
 ## Command Mapping
 
-- Get page/block: `roam-cli get`
-- Search blocks: `roam-cli search`
-- Run datalog query: `roam-cli q`
-- Save markdown page: `roam-cli save` (alias: `save-markdown`)
-- Get journaling by date: `roam-cli journal`
-- Find block UID: `roam-cli block find`
-- Create nested block tree: `roam-cli block create-tree`
-- Low-level block API: `roam-cli block ...`
-- Low-level batch API: `roam-cli batch run ...`
+| Command | Purpose |
+|---|---|
+| `get` | Read page by title or block by UID |
+| `search` | Search blocks by terms |
+| `q` | Run raw datalog query |
+| `save` | Save GFM markdown as a page |
+| `journal` | Read daily journaling blocks |
+| `block find` | Find block UID by text on a page/daily note |
+| `block create-tree` | Create nested block tree from JSON |
+| `block create/update/delete/get` | Low-level block CRUD |
+| `batch run` | Low-level batch actions |
 
 ## Recommended Workflow
 
@@ -94,91 +37,17 @@ op run --env-file=.env -- roam-cli get "Page Title"
 3. Prefer high-level writes: `save`, `journal`.
 4. Use low-level APIs for deterministic control: `block`, `batch`.
 
-## Usage Examples
+## Save Markdown (GFM format)
 
-### 1) Read page/block
+`save` accepts **GFM (GitHub Flavored Markdown)** and auto-converts to Roam blocks. Key rules:
 
-```bash
-roam-cli get "Page Title"
-roam-cli get "((block-uid))"
-roam-cli get "Page Title" --raw
-```
+- Do NOT include `#` h1 — page title comes from `--title`
+- Headings `##`–`###` become headed blocks (levels 4–6 capped to 3)
+- Lists (`-`/`*`/`+`) become nested child blocks; ordered lists preserve the `1.` marker
+- Tables MUST use standard GFM pipe+separator format (header row, `---` row, data rows)
+- Code blocks, blockquotes passed through; horizontal rules discarded
 
-### 2) Search blocks
-
-```bash
-roam-cli search term1 term2 --limit 20
-roam-cli search keyword --page "Project" --ignore-case
-```
-
-### 3) Datalog query
-
-```bash
-roam-cli q '[:find ?title :where [?e :node/title ?title]]'
-```
-
-### 4) Save markdown
-
-```bash
-roam-cli save --title "New Page" --file ./note.md
-cat ./note.md | roam-cli save --title "New Page"
-```
-
-### 5) Journal by date
-
-```bash
-roam-cli journal --date 2026-02-12
-roam-cli journal --date 2026-02-12 --topic "Work Log"
-```
-
-### 6) Find block UID
-
-```bash
-# Find block by text on a daily note
-roam-cli block find --text "[[📖 Daily Reading]]" --daily 2026-02-15
-
-# Find block by text on a named page
-roam-cli block find --text "Status" --page "Project Dashboard"
-```
-
-### 7) Create nested block tree
-
-```bash
-# From stdin (single object)
-echo '{"text":"headline","children":[{"text":"snapshot"}]}' | roam-cli block create-tree --parent <uid> --stdin
-
-# From stdin (array)
-echo '[{"text":"item1"},{"text":"item2","children":[{"text":"sub"}]}]' | roam-cli block create-tree --parent <uid> --stdin
-
-# From file
-roam-cli block create-tree --parent <uid> --file ./tree.json
-```
-
-### 8) Optimized daily-note workflow (2 calls)
-
-```bash
-# Step 1: Find the target block UID
-UID=$(roam-cli block find --daily 2026-02-15 --text "[[📖 Daily Reading]]")
-
-# Step 2: Create nested tree under it
-echo '{"text":"headline","children":[{"text":"snapshot"}]}' | roam-cli block create-tree --parent "$UID" --stdin
-```
-
-### 9) Low-level block operations
-
-```bash
-roam-cli block create --parent <uid> --text "hello"
-roam-cli block update --uid <uid> --text "updated"
-roam-cli block delete --uid <uid>
-roam-cli block get --uid <uid>
-```
-
-### 10) Low-level batch operations
-
-```bash
-roam-cli batch run --file ./examples/actions.create-page-and-block.json
-cat ./examples/actions.create-page-and-block.json | roam-cli batch run --stdin
-```
+Full conversion rules: see `references/gfm-format.md`
 
 ## Error Handling Rules
 
@@ -191,3 +60,7 @@ cat ./examples/actions.create-page-and-block.json | roam-cli batch run --stdin
 - Preserve JSON output when `--raw` is requested.
 - Keep default output concise and readable.
 - Never invent Roam data; only report real command results.
+
+## Detailed Examples
+
+See `references/usage-examples.md` for full command examples.
