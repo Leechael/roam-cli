@@ -1,0 +1,22 @@
+[
+  {
+    "action": "move-block",
+    "location": {
+      "parent-uid": "target-parent-uid",
+      "order": "last"
+    },
+    "block": {
+      "uid": "source-block-uid-1"
+    }
+  },
+  {
+    "action": "move-block",
+    "location": {
+      "parent-uid": "target-parent-uid",
+      "order": "last"
+    },
+    "block": {
+      "uid": "source-block-uid-2"
+    }
+  }
+]

@@ -82,6 +82,16 @@ func TestOutputModeMutualExclusion(t *testing.T) {
 			errText: "--json and --plain cannot be used together",
 		},
 		{
+			name: "block move json and plain conflict",
+			cmd: func() error {
+				opts = globalOptions{}
+				c := newBlockMoveCmd()
+				c.SetArgs([]string{"--json", "--plain", "--uid", "u", "--parent", "p"})
+				return c.Execute()
+			},
+			errText: "--json and --plain cannot be used together",
+		},
+		{
 			name: "batch run json and plain conflict",
 			cmd: func() error {
 				opts = globalOptions{}

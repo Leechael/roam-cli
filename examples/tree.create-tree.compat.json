@@ -1,0 +1,11 @@
+[
+  {
+    "text": "accepts text key"
+  },
+  {
+    "string": "also accepts string key",
+    "children": [
+      {"text": "nested child"}
+    ]
+  }
+]

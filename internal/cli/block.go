@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -18,6 +19,7 @@ func newBlockCmd() *cobra.Command {
 	block.AddCommand(newBlockCreateCmd())
 	block.AddCommand(newBlockUpdateCmd())
 	block.AddCommand(newBlockDeleteCmd())
+	block.AddCommand(newBlockMoveCmd())
 	block.AddCommand(newBlockGetCmd())
 	block.AddCommand(newBlockFindCmd())
 	block.AddCommand(newBlockCreateTreeCmd())
@@ -155,6 +157,51 @@ func newBlockDeleteCmd() *cobra.Command {
 	return cmd
 }
 
+func newBlockMoveCmd() *cobra.Command {
+	var uid string
+	var parentUID string
+	var order string
+	var asJSON bool
+	var asPlain bool
+
+	cmd := &cobra.Command{
+		Use:   "move",
+		Short: "Move a block to another parent",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := validateOutputFlags(asJSON, asPlain); err != nil {
+				return err
+			}
+			if strings.TrimSpace(uid) == "" {
+				return errMissingFlag("uid")
+			}
+			if strings.TrimSpace(parentUID) == "" {
+				return errMissingFlag("parent")
+			}
+			client, err := mustClient()
+			if err != nil {
+				return err
+			}
+			action := roam.MoveBlockAction(uid, parentUID, order)
+			resp, err := client.Write(action)
+			if err != nil {
+				return err
+			}
+			if asPlain {
+				fmt.Printf("%s\n", uid)
+				return nil
+			}
+			return prettyPrint(map[string]any{"uid": uid, "parent_uid": parentUID, "response": resp})
+		},
+	}
+
+	cmd.Flags().StringVar(&uid, "uid", "", "Block uid")
+	cmd.Flags().StringVar(&parentUID, "parent", "", "Target parent uid")
+	cmd.Flags().StringVar(&order, "order", "last", "Order: first|last|<int>")
+	cmd.Flags().BoolVar(&asJSON, "json", false, "Output move result as JSON")
+	cmd.Flags().BoolVar(&asPlain, "plain", false, "Output move result as plain text")
+	return cmd
+}
+
 func newBlockGetCmd() *cobra.Command {
 	var uid string
 	var asJSON bool
@@ -253,7 +300,18 @@ func newBlockFindCmd() *cobra.Command {
 
 type treeNode struct {
 	Text     string     `json:"text"`
+	String   string     `json:"string"`
+	UID      string     `json:"uid,omitempty"`
+	Order    string     `json:"order,omitempty"`
+	Open     *bool      `json:"open,omitempty"`
 	Children []treeNode `json:"children,omitempty"`
+}
+
+func (n treeNode) blockText() string {
+	if strings.TrimSpace(n.Text) != "" {
+		return n.Text
+	}
+	return n.String
 }
 
 func newBlockCreateTreeCmd() *cobra.Command {
@@ -264,8 +322,10 @@ func newBlockCreateTreeCmd() *cobra.Command {
 	var asPlain bool
 
 	cmd := &cobra.Command{
-		Use:   "create-tree",
-		Short: "Create a nested tree of blocks atomically",
+		Use:     "create-tree",
+		Short:   "Create a nested tree of blocks atomically",
+		Long:    "Create a nested tree under a parent block UID. Input JSON accepts either a single node object or an array of nodes. Each node supports text (or string), optional children, uid, order, and open.",
+		Example: "  roam-cli block create-tree --parent <uid> --file ./tree.json\n  echo '{\"text\":\"Root\",\"children\":[{\"string\":\"Child\"}]}' | roam-cli block create-tree --parent <uid> --stdin",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := validateOutputFlags(asJSON, asPlain); err != nil {
 				return err
@@ -279,29 +339,44 @@ func newBlockCreateTreeCmd() *cobra.Command {
 				return err
 			}
 
-			var nodes []treeNode
-			raw = trimBOM(raw)
-			// Try array first, then single object
-			if err := json.Unmarshal([]byte(raw), &nodes); err != nil {
-				var single treeNode
-				if err2 := json.Unmarshal([]byte(raw), &single); err2 != nil {
-					return fmt.Errorf("invalid JSON input: %w", err)
-				}
-				nodes = []treeNode{single}
+			nodes, err := parseTreeNodes(raw)
+			if err != nil {
+				return err
 			}
 
 			var actions []map[string]any
-			var walkTree func(parent string, children []treeNode)
-			walkTree = func(parent string, children []treeNode) {
-				for _, node := range children {
-					uid := roam.NewUID()
-					actions = append(actions, roam.CreateBlockAction(node.Text, parent, uid, "last", true))
+			var walkTree func(parent string, children []treeNode, path string) error
+			walkTree = func(parent string, children []treeNode, path string) error {
+				for i, node := range children {
+					nodePath := fmt.Sprintf("%s[%d]", path, i)
+					text := strings.TrimSpace(node.blockText())
+					if text == "" {
+						return fmt.Errorf("%s text is required (use \"text\" or \"string\")", nodePath)
+					}
+					uid := strings.TrimSpace(node.UID)
+					if uid == "" {
+						uid = roam.NewUID()
+					}
+					order := strings.TrimSpace(node.Order)
+					if order == "" {
+						order = "last"
+					}
+					open := true
+					if node.Open != nil {
+						open = *node.Open
+					}
+					actions = append(actions, roam.CreateBlockAction(text, parent, uid, order, open))
 					if len(node.Children) > 0 {
-						walkTree(uid, node.Children)
+						if err := walkTree(uid, node.Children, nodePath+".children"); err != nil {
+							return err
+						}
 					}
 				}
+				return nil
 			}
-			walkTree(parentUID, nodes)
+			if err := walkTree(parentUID, nodes, "root"); err != nil {
+				return err
+			}
 
 			if len(actions) == 0 {
 				return fmt.Errorf("no blocks to create")
@@ -331,6 +406,19 @@ func newBlockCreateTreeCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&asJSON, "json", false, "Output result as JSON")
 	cmd.Flags().BoolVar(&asPlain, "plain", false, "Output result as plain text")
 	return cmd
+}
+
+func parseTreeNodes(raw string) ([]treeNode, error) {
+	raw = trimBOM(raw)
+	var nodes []treeNode
+	if err := json.Unmarshal([]byte(raw), &nodes); err == nil {
+		return nodes, nil
+	}
+	var single treeNode
+	if err := json.Unmarshal([]byte(raw), &single); err != nil {
+		return nil, fmt.Errorf("invalid JSON input: %w", err)
+	}
+	return []treeNode{single}, nil
 }
 
 func trimBOM(s string) string {

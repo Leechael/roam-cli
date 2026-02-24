@@ -83,8 +83,8 @@ roam-cli status --json --jq '.ok'
 
 ### Low-level commands
 
-- `block create|update|delete|get`
-- `batch run`
+- `block create|update|delete|move|get|find|create-tree`
+- `batch run` (native actions + `create-with-children` DSL)
 
 ---
 
@@ -108,9 +108,12 @@ roam-cli search term1 term2 --limit 20 --json
 roam-cli q '[:find ?title :where [?e :node/title ?title]]' --json
 roam-cli q '[:find ?title :where [?e :node/title ?title]]' --json --jq '.[0]'
 
-# save markdown
+# save markdown to a new page
 roam-cli save --title "New Page" --file ./examples/note.md --json
 cat ./examples/note.md | roam-cli save --title "New Page" --plain
+
+# save markdown under an existing block
+roam-cli save --parent "3f3578fe-dd11-420d-a896-90a65ed913c1" --file ./examples/note.md --json
 
 # journal
 roam-cli journal --date 2026-02-12 --plain
@@ -118,9 +121,18 @@ roam-cli journal --date 2026-02-12 --json
 
 # low-level block
 roam-cli block create --parent "02-12-2026" --text "hello" --json
+roam-cli block move --uid "source-block-uid" --parent "target-parent-uid" --order last --json
 
-# low-level batch
+# create nested tree from JSON (text/string compatible)
+roam-cli block create-tree --parent "3f3578fe-dd11-420d-a896-90a65ed913c1" --file ./examples/tree.create-tree.compat.json --json
+
+# low-level batch (native actions)
 roam-cli batch run --file ./examples/actions.create-page-and-block.json --json
+roam-cli batch run --file ./examples/actions.bulk-update.json --json
+roam-cli batch run --file ./examples/actions.bulk-move.json --json
+
+# batch DSL
+roam-cli batch run --file ./examples/actions.create-with-children.json --json
 ```
 
 ---
