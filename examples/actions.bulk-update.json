@@ -1,0 +1,16 @@
+[
+  {
+    "action": "update-block",
+    "block": {
+      "uid": "uid-1",
+      "string": "KMS status: done"
+    }
+  },
+  {
+    "action": "update-block",
+    "block": {
+      "uid": "uid-2",
+      "string": "QVL status: in progress"
+    }
+  }
+]

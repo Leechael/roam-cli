@@ -59,3 +59,19 @@ func DeleteBlockAction(uid string) map[string]any {
 		},
 	}
 }
+
+func MoveBlockAction(uid, parentUID, order string) map[string]any {
+	if order == "" {
+		order = "last"
+	}
+	return map[string]any{
+		"action": "move-block",
+		"location": map[string]any{
+			"parent-uid": parentUID,
+			"order":      order,
+		},
+		"block": map[string]any{
+			"uid": uid,
+		},
+	}
+}

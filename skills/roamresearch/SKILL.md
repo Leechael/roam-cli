@@ -23,12 +23,32 @@ If not set up, see `references/installation.md`.
 | `get` | Read page by title or block by UID |
 | `search` | Search blocks by terms |
 | `q` | Run raw datalog query |
-| `save` | Save GFM markdown as a page |
+| `save` | Save GFM markdown as a page (`--title`) or under a parent block (`--parent`) |
 | `journal` | Read daily journaling blocks |
 | `block find` | Find block UID by text on a page/daily note |
 | `block create-tree` | Create nested block tree from JSON |
-| `block create/update/delete/get` | Low-level block CRUD |
-| `batch run` | Low-level batch actions |
+| `block create/update/delete/move/get` | Low-level block operations |
+| `batch run` | Batch actions (native + `create-with-children` DSL) |
+
+## `block create-tree` Input Contract
+
+- Requires `--parent <block-uid>`.
+- JSON supports either a single object or an array of objects.
+- Node shape is:
+  - `text` (required): block text
+  - `children` (optional): nested nodes
+- CLI accepts both `text` and `string` in input JSON (`text` takes precedence when both are provided).
+
+Example:
+
+```json
+{
+  "text": "Current State - 2026-02-24",
+  "children": [
+    {"text": "Project A", "children": [{"text": "Task 1"}]}
+  ]
+}
+```
 
 ## Recommended Workflow
 
@@ -57,7 +77,7 @@ Full conversion rules: see `references/gfm-format.md`
 
 ## Output Rules
 
-- Preserve JSON output when `--raw` is requested.
+- Preserve JSON output when `--json` is requested.
 - Keep default output concise and readable.
 - Never invent Roam data; only report real command results.
 

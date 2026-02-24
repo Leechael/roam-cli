@@ -5,9 +5,8 @@
 ```bash
 roam-cli get "Page Title"
 roam-cli get "((block-uid))"
-roam-cli get "Page Title" --raw
+roam-cli get "Page Title" --json
 ```
-
 ## Search blocks
 
 ```bash
@@ -24,8 +23,12 @@ roam-cli q '[:find ?title :where [?e :node/title ?title]]'
 ## Save markdown
 
 ```bash
+# Save to a new page
 roam-cli save --title "New Page" --file ./note.md
 cat ./note.md | roam-cli save --title "New Page"
+
+# Save under an existing parent block
+roam-cli save --parent <uid> --file ./note.md
 ```
 
 ## Journal by date
@@ -46,6 +49,8 @@ roam-cli block find --text "Status" --page "Project Dashboard"
 ```
 
 ## Create nested block tree
+
+`block create-tree` supports both `text` and `string` keys (+ `children`).
 
 ```bash
 # From stdin (single object)
@@ -73,6 +78,7 @@ echo '{"text":"headline","children":[{"text":"snapshot"}]}' | roam-cli block cre
 ```bash
 roam-cli block create --parent <uid> --text "hello"
 roam-cli block update --uid <uid> --text "updated"
+roam-cli block move --uid <uid> --parent <target-parent-uid> --order last
 roam-cli block delete --uid <uid>
 roam-cli block get --uid <uid>
 ```
@@ -80,6 +86,11 @@ roam-cli block get --uid <uid>
 ## Low-level batch operations
 
 ```bash
+# Native batch actions
 roam-cli batch run --file ./examples/actions.create-page-and-block.json
-cat ./examples/actions.create-page-and-block.json | roam-cli batch run --stdin
+roam-cli batch run --file ./examples/actions.bulk-update.json
+roam-cli batch run --file ./examples/actions.bulk-move.json
+
+# DSL batch action
+roam-cli batch run --file ./examples/actions.create-with-children.json
 ```

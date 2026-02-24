@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+
+	batchdsl "roam-cli/internal/batch"
 )
 
 func newBatchCmd() *cobra.Command {
@@ -20,8 +22,10 @@ func newBatchCmd() *cobra.Command {
 	var asPlain bool
 
 	run := &cobra.Command{
-		Use:   "run",
-		Short: "Run Roam batch-actions from JSON array",
+		Use:     "run",
+		Short:   "Run Roam batch-actions from JSON array",
+		Long:    "Run Roam batch-actions from JSON array. Supports native actions (create-block, update-block, delete-block, move-block) and DSL action create-with-children.",
+		Example: "  roam-cli batch run --file ./examples/actions.bulk-update.json\n  roam-cli batch run --file ./examples/actions.create-with-children.json",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := validateOutputFlags(asJSON, asPlain); err != nil {
 				return err
@@ -40,18 +44,23 @@ func newBatchCmd() *cobra.Command {
 				return err
 			}
 
+			expanded, err := batchdsl.ExpandActions(actions)
+			if err != nil {
+				return err
+			}
+
 			client, err := mustClient()
 			if err != nil {
 				return err
 			}
-			resp, err := client.BatchActions(actions)
+			resp, err := client.BatchActions(expanded)
 			if err != nil {
 				return err
 			}
 			if asJSON {
-				return prettyPrint(resp)
+				return prettyPrint(map[string]any{"input_actions": len(actions), "expanded_actions": len(expanded), "response": resp})
 			}
-			fmt.Printf("ok (%d actions)\n", len(actions))
+			fmt.Printf("ok (%d actions; expanded from %d)\n", len(expanded), len(actions))
 			return nil
 		},
 	}
