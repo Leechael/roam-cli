@@ -26,9 +26,27 @@ If not set up, see `references/installation.md`.
 | `save` | Save GFM markdown as a page (`--title`) or under a parent block (`--parent`) |
 | `journal` | Read daily journaling blocks |
 | `block find` | Find block UID by text on a page/daily note |
-| `block create-tree` | Create nested block tree from JSON |
-| `block create/update/delete/move/get` | Low-level block operations |
+| `block create-tree` | Create nested block tree from JSON (preferred for multi-block writes) |
+| `block create/update/delete/move/get` | Low-level single-block operations |
 | `batch run` | Batch actions (native + `create-with-children` DSL) |
+
+Run `roam-cli help <category>` for categorized usage examples. Categories: `read`, `write`, `workflow`, or `all`.
+
+## Write Strategy (important)
+
+When writing multiple blocks, **always prefer fewer API calls**:
+
+| Scenario | Use this | NOT this |
+|---|---|---|
+| Save a long document/article | `save --title` or `save --parent` | Sequential `block create` |
+| Create a parent with children | `block create-tree --parent` | `block create` parent → `block create` child × N |
+| Multiple heterogeneous writes | `batch run` | Multiple individual write calls |
+| Single block, no children | `block create` | (this is fine) |
+
+**Anti-patterns — do NOT do these:**
+- Do NOT call `block create` in a loop to build a tree. Use `block create-tree` instead.
+- Do NOT fire multiple `block create` calls in parallel to the same parent. Use `batch run` or `block create-tree`.
+- Do NOT call `block create` to make a parent and then immediately call `block create` for each child. Combine into one `block create-tree` call.
 
 ## `block create-tree` Input Contract
 
@@ -53,9 +71,12 @@ Example:
 ## Recommended Workflow
 
 1. Run `roam-cli status` first.
-2. Prefer read commands first: `get`, `search`, `q`.
-3. Prefer high-level writes: `save`, `journal`.
-4. Use low-level APIs for deterministic control: `block`, `batch`.
+2. Read first: `get`, `search`, `q`, `journal`, `block find`.
+3. Write with the highest-level command that fits:
+   - Long markdown → `save`
+   - Structured tree → `block create-tree`
+   - Mixed operations → `batch run`
+   - Single block → `block create`
 
 ## Save Markdown (GFM format)
 
@@ -83,4 +104,4 @@ Full conversion rules: see `references/gfm-format.md`
 
 ## Detailed Examples
 
-See `references/usage-examples.md` for full command examples.
+Run `roam-cli help all` or see `references/usage-examples.md`.
