@@ -42,6 +42,8 @@ func newRootCmd() *cobra.Command {
 	root.AddCommand(newBlockCmd())
 	root.AddCommand(newBatchCmd())
 
+	installHelpCmd(root)
+
 	return root
 }
 
