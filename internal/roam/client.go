@@ -14,15 +14,22 @@ import (
 
 const (
 	// maxActionsPerBatch is the maximum number of actions sent in a single
-	// batch-actions request. Roam recommends 50-100; we use 50 to stay safe.
-	maxActionsPerBatch = 50
+	// batch-actions request. Roam recommends 50-100; we use 30 to leave
+	// headroom for other calls in the same session.
+	maxActionsPerBatch = 30
 
-	// delayBetweenBatches is the pause between consecutive chunk requests
-	// to stay within ~2-3 req/s rate guidance.
-	delayBetweenBatches = 400 * time.Millisecond
+	// delayBetweenBatches is the pause between consecutive chunk requests.
+	// Roam rate limit is ~100 req/min; 2s keeps us well under 30 req/min
+	// even for large batches, leaving budget for surrounding calls.
+	delayBetweenBatches = 2 * time.Second
 
 	// maxRetries is the number of retries on HTTP 429.
-	maxRetries = 5
+	// Backoff: 2, 4, 8, 16, 32, 64s = 126s total, enough to wait out
+	// a full 60s rate-limit window.
+	maxRetries = 6
+
+	// retryBaseDelay is the base for exponential backoff on 429.
+	retryBaseDelay = 2 * time.Second
 )
 
 type Client struct {
@@ -129,7 +136,7 @@ func (c *Client) postJSON(path string, payload map[string]any) (map[string]any, 
 		}
 
 		if resp.StatusCode == http.StatusTooManyRequests && attempt < maxRetries {
-			wait := time.Duration(math.Pow(2, float64(attempt))) * time.Second
+			wait := time.Duration(float64(retryBaseDelay) * math.Pow(2, float64(attempt)))
 			time.Sleep(wait)
 			continue
 		}
