@@ -38,7 +38,7 @@ func newSaveCmd() *cobra.Command {
 		Use:     "save",
 		Aliases: []string{"save-markdown"},
 		Short:   "Save markdown as a Roam page or under a parent block",
-		Example: "  roam-cli save --title \"New Page\" --file ./note.md\n  roam-cli save --parent <block-uid> --file ./note.md",
+		Example: "  cat note.md | roam-cli save --title \"New Page\"\n  roam-cli save --title \"New Page\" --file ./note.md\n  roam-cli save --parent <block-uid> --file ./note.md",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := validateOutputFlags(asJSON, asPlain); err != nil {
 				return err

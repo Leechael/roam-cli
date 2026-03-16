@@ -54,10 +54,10 @@ roam-cli block find --text "Status" --page "Project Dashboard"
 
 ```bash
 # From stdin (single object)
-echo '{"text":"headline","children":[{"text":"snapshot"}]}' | roam-cli block create-tree --parent <uid> --stdin
+echo '{"text":"headline","children":[{"text":"snapshot"}]}' | roam-cli block create-tree --parent <uid>
 
 # From stdin (array)
-echo '[{"text":"item1"},{"text":"item2","children":[{"text":"sub"}]}]' | roam-cli block create-tree --parent <uid> --stdin
+echo '[{"text":"item1"},{"text":"item2","children":[{"text":"sub"}]}]' | roam-cli block create-tree --parent <uid>
 
 # From file
 roam-cli block create-tree --parent <uid> --file ./tree.json
@@ -70,7 +70,7 @@ roam-cli block create-tree --parent <uid> --file ./tree.json
 UID=$(roam-cli block find --daily 2026-02-15 --text "[[📖 Daily Reading]]")
 
 # Step 2: Create nested tree under it
-echo '{"text":"headline","children":[{"text":"snapshot"}]}' | roam-cli block create-tree --parent "$UID" --stdin
+echo '{"text":"headline","children":[{"text":"snapshot"}]}' | roam-cli block create-tree --parent "$UID"
 ```
 
 ## Low-level block operations

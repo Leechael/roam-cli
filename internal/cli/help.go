@@ -59,11 +59,11 @@ var categories = []exampleCategory{
 
   # Single object with children
   echo '{"text":"headline","children":[{"text":"child 1"},{"text":"child 2"}]}' \
-    | roam-cli block create-tree --parent <uid> --stdin
+    | roam-cli block create-tree --parent <uid>
 
   # Array of sibling nodes
   echo '[{"text":"item1"},{"text":"item2","children":[{"text":"sub"}]}]' \
-    | roam-cli block create-tree --parent <uid> --stdin
+    | roam-cli block create-tree --parent <uid>
 
   # From file
   roam-cli block create-tree --parent <uid> --file ./tree.json
@@ -96,7 +96,7 @@ var categories = []exampleCategory{
     {"text":"Key point 1"},
     {"text":"Key point 2"},
     {"text":"Source: https://..."}
-  ]}' | roam-cli block create-tree --parent "$UID" --stdin
+  ]}' | roam-cli block create-tree --parent "$UID"
 
 ## Build a project status tree (1 call, not N)
 
@@ -110,7 +110,7 @@ var categories = []exampleCategory{
     {"text":"Task 1"},
     {"text":"Task 2"},
     {"text":"Task 3","children":[{"text":"Subtask 3.1"}]}
-  ]}' | roam-cli block create-tree --parent "$PAGE" --stdin
+  ]}' | roam-cli block create-tree --parent "$PAGE"
 
 ## Save a long document as a page
 
@@ -132,7 +132,7 @@ var categories = []exampleCategory{
     {"action":"move-block","location":{"parent-uid":"target","order":"last"},"block":{"uid":"abc"}},
     {"action":"move-block","location":{"parent-uid":"target","order":"last"},"block":{"uid":"def"}},
     {"action":"update-block","block":{"uid":"abc","string":"moved and updated"}}
-  ]' | roam-cli batch run --stdin`,
+  ]' | roam-cli batch run`,
 	},
 }
 

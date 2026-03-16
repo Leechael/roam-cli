@@ -325,7 +325,7 @@ func newBlockCreateTreeCmd() *cobra.Command {
 		Use:     "create-tree",
 		Short:   "Create a nested tree of blocks atomically",
 		Long:    "Create a nested tree under a parent block UID. Input JSON accepts either a single node object or an array of nodes. Each node supports text (or string), optional children, uid, order, and open.",
-		Example: "  roam-cli block create-tree --parent <uid> --file ./tree.json\n  echo '{\"text\":\"Root\",\"children\":[{\"string\":\"Child\"}]}' | roam-cli block create-tree --parent <uid> --stdin",
+		Example: "  echo '{\"text\":\"Root\",\"children\":[{\"string\":\"Child\"}]}' | roam-cli block create-tree --parent <uid>\n  roam-cli block create-tree --parent <uid> --file ./tree.json",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := validateOutputFlags(asJSON, asPlain); err != nil {
 				return err
@@ -334,7 +334,7 @@ func newBlockCreateTreeCmd() *cobra.Command {
 				return errMissingFlag("parent")
 			}
 
-			raw, err := readAllFromFileOrStdin(file, useStdin)
+			raw, err := readAllFromFileOrStdin(file, useStdin || file == "")
 			if err != nil {
 				return err
 			}

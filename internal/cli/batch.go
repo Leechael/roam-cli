@@ -30,7 +30,7 @@ func newBatchCmd() *cobra.Command {
 			if err := validateOutputFlags(asJSON, asPlain); err != nil {
 				return err
 			}
-			raw, err := readAllFromFileOrStdin(file, useStdin)
+			raw, err := readAllFromFileOrStdin(file, useStdin || file == "")
 			if err != nil {
 				return err
 			}

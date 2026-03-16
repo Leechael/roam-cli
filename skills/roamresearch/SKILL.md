@@ -51,6 +51,7 @@ When writing multiple blocks, **always prefer fewer API calls**:
 ## `block create-tree` Input Contract
 
 - Requires `--parent <block-uid>`.
+- Accepts JSON from stdin (pipe) or `--file`. No `--stdin` flag needed.
 - JSON supports either a single object or an array of objects.
 - Node shape is:
   - `text` (required): block text
