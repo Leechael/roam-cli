@@ -49,32 +49,31 @@ var categories = []exampleCategory{
 	{
 		Name: "write",
 		Desc: "Save markdown, create trees, batch operations, single-block writes",
-		Content: `## Save markdown as page (preferred for documents)
+		Content: `## Save to daily page (preferred for daily notes — one-shot)
 
+  cat note.md | roam-cli save --to-daily-page
+  cat note.md | roam-cli save --to-daily-page 2026-03-14
+
+## Save markdown as page
+
+  cat note.md | roam-cli save --title "New Page"
   roam-cli save --title "New Page" --file ./note.md
-  cat ./note.md | roam-cli save --title "New Page"
   roam-cli save --parent <uid> --file ./note.md
 
 ## Create nested block tree (preferred for structured data)
 
-  # Single object with children
   echo '{"text":"headline","children":[{"text":"child 1"},{"text":"child 2"}]}' \
     | roam-cli block create-tree --parent <uid>
 
-  # Array of sibling nodes
   echo '[{"text":"item1"},{"text":"item2","children":[{"text":"sub"}]}]' \
     | roam-cli block create-tree --parent <uid>
 
-  # From file
   roam-cli block create-tree --parent <uid> --file ./tree.json
 
 ## Batch operations (preferred for mixed action types)
 
-  # Native batch actions (create, update, delete, move)
   roam-cli batch run --file ./actions.json
-
-  # DSL: create-with-children
-  roam-cli batch run --file ./actions.create-with-children.json
+  echo '[...]' | roam-cli batch run
 
 ## Single-block operations (use only when a single block suffices)
 
@@ -86,16 +85,18 @@ var categories = []exampleCategory{
 	{
 		Name: "workflow",
 		Desc: "Common multi-step patterns for efficient Roam operations",
-		Content: `## Save a tweet/article to Daily Reading (2 calls)
+		Content: `## Save to today's daily page (1 call)
 
-  # Step 1: Find the parent block UID
+  cat note.md | roam-cli save --to-daily-page
+  echo '# Article Summary' | roam-cli save --to-daily-page 2026-03-14
+
+## Save a tweet/article under a specific block (2 calls)
+
+  # Find the target block, then create tree under it
   UID=$(roam-cli block find --daily 2026-02-15 --text "[[📖 Daily Reading]]")
-
-  # Step 2: Create the full tree in one call
   echo '{"text":"Article Title","children":[
     {"text":"Key point 1"},
-    {"text":"Key point 2"},
-    {"text":"Source: https://..."}
+    {"text":"Key point 2"}
   ]}' | roam-cli block create-tree --parent "$UID"
 
 ## Build a project status tree (1 call, not N)
@@ -111,6 +112,11 @@ var categories = []exampleCategory{
     {"text":"Task 2"},
     {"text":"Task 3","children":[{"text":"Subtask 3.1"}]}
   ]}' | roam-cli block create-tree --parent "$PAGE"
+
+## Search/find on a daily page (pass ISO date)
+
+  roam-cli search --page 2026-03-14 keyword
+  roam-cli block find --page 2026-03-14 --text "[[📖 Daily Reading]]"
 
 ## Save a long document as a page
 

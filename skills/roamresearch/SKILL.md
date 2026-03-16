@@ -23,7 +23,7 @@ If not set up, see `references/installation.md`.
 | `get` | Read page by title or block by UID |
 | `search` | Search blocks by terms |
 | `q` | Run raw datalog query |
-| `save` | Save GFM markdown as a page (`--title`) or under a parent block (`--parent`) |
+| `save` | Save GFM markdown as a page, daily page, or under a parent block |
 | `journal` | Read daily journaling blocks |
 | `block find` | Find block UID by text on a page/daily note |
 | `block create-tree` | Create nested block tree from JSON (preferred for multi-block writes) |
@@ -32,70 +32,109 @@ If not set up, see `references/installation.md`.
 
 Run `roam-cli help <category>` for categorized usage examples. Categories: `read`, `write`, `workflow`, or `all`.
 
-## Write Strategy (important)
+## Write Strategy (critical — read this first)
 
-When writing multiple blocks, **always prefer fewer API calls**:
+**Minimize API calls.** Every tool call costs tokens. Use the highest-level command that fits.
 
 | Scenario | Use this | NOT this |
 |---|---|---|
-| Save a long document/article | `save --title` or `save --parent` | Sequential `block create` |
-| Create a parent with children | `block create-tree --parent` | `block create` parent → `block create` child × N |
+| Save content to today's daily page | `save --to-daily-page` | `journal` → parse UID → `save --parent` |
+| Save content to a specific daily page | `save --to-daily-page 2026-03-14` | `block find --daily` → `save --parent` |
+| Save a long document/article as a page | `save --title "Page Name"` | Sequential `block create` |
+| Create a parent with children | `block create-tree --parent <uid>` | `block create` parent → `block create` child × N |
 | Multiple heterogeneous writes | `batch run` | Multiple individual write calls |
 | Single block, no children | `block create` | (this is fine) |
 
-**Anti-patterns — do NOT do these:**
-- Do NOT call `block create` in a loop to build a tree. Use `block create-tree` instead.
-- Do NOT fire multiple `block create` calls in parallel to the same parent. Use `batch run` or `block create-tree`.
-- Do NOT call `block create` to make a parent and then immediately call `block create` for each child. Combine into one `block create-tree` call.
+### Daily page operations
+
+Use `--to-daily-page` for one-shot writes to daily pages. Do NOT manually construct Roam daily page titles like "March 14th, 2026" — the CLI handles this internally.
+
+```bash
+# Save markdown to today's daily page
+cat note.md | roam-cli save --to-daily-page
+
+# Save to a specific date
+cat note.md | roam-cli save --to-daily-page 2026-03-14
+
+# Search/find on a daily page — pass ISO date, CLI auto-resolves
+roam-cli search --page 2026-03-14 keyword
+roam-cli block find --page 2026-03-14 --text "[[📖 Daily Reading]]"
+```
+
+### Anti-patterns — do NOT do these
+
+- Do NOT call `block create` in a loop to build a tree. Use `block create-tree`.
+- Do NOT fire multiple `block create` in parallel to the same parent. Use `batch run` or `block create-tree`.
+- Do NOT do multi-step "find daily page UID → then write". Use `save --to-daily-page`.
+- Do NOT manually construct "Month DDth, YYYY" date strings. Pass ISO dates (YYYY-MM-DD) to `--to-daily-page`, `--daily`, or `--page` — the CLI converts them.
+- Do NOT add `--stdin` when piping — it's automatic.
+
+## Pipeline Support
+
+All commands that accept input (`save`, `block create-tree`, `batch run`) read from stdin by default when `--file` is not given. No `--stdin` flag needed.
+
+```bash
+echo '{"text":"root","children":[{"text":"child"}]}' | roam-cli block create-tree --parent <uid>
+cat note.md | roam-cli save --title "Page Name"
+echo '[...]' | roam-cli batch run
+```
 
 ## `block create-tree` Input Contract
 
 - Requires `--parent <block-uid>`.
-- Accepts JSON from stdin (pipe) or `--file`. No `--stdin` flag needed.
+- Accepts JSON from pipe or `--file`.
 - JSON supports either a single object or an array of objects.
-- Node shape is:
-  - `text` (required): block text
-  - `children` (optional): nested nodes
-- CLI accepts both `text` and `string` in input JSON (`text` takes precedence when both are provided).
-
-Example:
+- Node shape: `text` (required), `children` (optional array of nodes).
+- Both `text` and `string` keys accepted (`text` takes precedence).
 
 ```json
-{
-  "text": "Current State - 2026-02-24",
-  "children": [
-    {"text": "Project A", "children": [{"text": "Task 1"}]}
-  ]
-}
+{"text": "headline", "children": [
+  {"text": "point 1"},
+  {"text": "point 2", "children": [{"text": "sub-point"}]}
+]}
 ```
+
+## Date Handling
+
+The CLI auto-resolves ISO dates (YYYY-MM-DD) to Roam daily page titles wherever a page reference is expected:
+
+| Flag | Input | Resolved to |
+|---|---|---|
+| `save --to-daily-page` | `2026-03-14` | Creates/finds page "March 14th, 2026" |
+| `search --page` | `2026-03-14` | Searches in "March 14th, 2026" |
+| `block find --page` | `2026-03-14` | Finds block in "March 14th, 2026" |
+| `block find --daily` | `2026-03-14` | Finds by daily page UID (existing behavior) |
+| `journal --date` | `2026-03-14` | Reads daily journal (existing behavior) |
 
 ## Recommended Workflow
 
-1. Run `roam-cli status` first.
-2. Read first: `get`, `search`, `q`, `journal`, `block find`.
-3. Write with the highest-level command that fits:
-   - Long markdown → `save`
+1. `roam-cli status` — verify credentials.
+2. Read: `get`, `search`, `q`, `journal`, `block find`.
+3. Write (pick one, in order of preference):
+   - Daily page content → `save --to-daily-page`
+   - Long markdown → `save --title`
    - Structured tree → `block create-tree`
    - Mixed operations → `batch run`
    - Single block → `block create`
 
 ## Save Markdown (GFM format)
 
-`save` accepts **GFM (GitHub Flavored Markdown)** and auto-converts to Roam blocks. Key rules:
+`save` accepts GFM and auto-converts to Roam blocks:
 
-- Do NOT include `#` h1 — page title comes from `--title`
-- Headings `##`–`###` become headed blocks (levels 4–6 capped to 3)
-- Lists (`-`/`*`/`+`) become nested child blocks; ordered lists preserve the `1.` marker
-- Tables MUST use standard GFM pipe+separator format (header row, `---` row, data rows)
-- Code blocks, blockquotes passed through; horizontal rules discarded
+- Do NOT include `#` h1 — title comes from `--title` or `--to-daily-page`
+- `##`–`###` → headed blocks (levels 4–6 capped to 3)
+- Lists → nested child blocks; ordered lists preserve marker
+- Tables → `{{[[table]]}}` blocks (must be valid GFM pipe+separator)
+- Code blocks, blockquotes → passed through
+- Horizontal rules → discarded
 
-Full conversion rules: see `references/gfm-format.md`
+Full rules: `references/gfm-format.md`
 
 ## Error Handling Rules
 
-- Missing credentials: explicitly report missing `ROAM_API_TOKEN` / `ROAM_API_GRAPH`.
+- Missing credentials: report missing `ROAM_API_TOKEN` / `ROAM_API_GRAPH`.
 - API failures: include HTTP status code and response body.
-- Not found: clearly include the identifier/uid that was requested.
+- Not found: include the identifier/uid that was requested.
 
 ## Output Rules
 

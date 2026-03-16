@@ -12,6 +12,9 @@ roam-cli get "Page Title" --json
 ```bash
 roam-cli search term1 term2 --limit 20
 roam-cli search keyword --page "Project" --ignore-case
+
+# Search on a daily page (pass ISO date, auto-resolved)
+roam-cli search keyword --page 2026-03-14
 ```
 
 ## Datalog query
@@ -24,8 +27,14 @@ roam-cli q '[:find ?title :where [?e :node/title ?title]]'
 
 ```bash
 # Save to a new page
-roam-cli save --title "New Page" --file ./note.md
 cat ./note.md | roam-cli save --title "New Page"
+roam-cli save --title "New Page" --file ./note.md
+
+# Save to today's daily page (one-shot)
+cat ./note.md | roam-cli save --to-daily-page
+
+# Save to a specific daily page
+cat ./note.md | roam-cli save --to-daily-page 2026-03-14
 
 # Save under an existing parent block
 roam-cli save --parent <uid> --file ./note.md
@@ -44,6 +53,9 @@ roam-cli journal --date 2026-02-12 --topic "Work Log"
 # Find block by text on a daily note
 roam-cli block find --text "[[📖 Daily Reading]]" --daily 2026-02-15
 
+# Find block by text on a daily page (pass ISO date)
+roam-cli block find --text "[[📖 Daily Reading]]" --page 2026-02-15
+
 # Find block by text on a named page
 roam-cli block find --text "Status" --page "Project Dashboard"
 ```
@@ -53,24 +65,30 @@ roam-cli block find --text "Status" --page "Project Dashboard"
 `block create-tree` supports both `text` and `string` keys (+ `children`).
 
 ```bash
-# From stdin (single object)
+# From pipe (single object)
 echo '{"text":"headline","children":[{"text":"snapshot"}]}' | roam-cli block create-tree --parent <uid>
 
-# From stdin (array)
+# From pipe (array)
 echo '[{"text":"item1"},{"text":"item2","children":[{"text":"sub"}]}]' | roam-cli block create-tree --parent <uid>
 
 # From file
 roam-cli block create-tree --parent <uid> --file ./tree.json
 ```
 
-## Optimized daily-note workflow (2 calls)
+## Daily page workflows (one-shot)
 
 ```bash
-# Step 1: Find the target block UID
-UID=$(roam-cli block find --daily 2026-02-15 --text "[[📖 Daily Reading]]")
+# Save a tweet summary to today's daily page
+echo '{"text":"🐦 tweet headline","children":[{"text":"key point"}]}' \
+  | roam-cli save --to-daily-page
 
-# Step 2: Create nested tree under it
-echo '{"text":"headline","children":[{"text":"snapshot"}]}' | roam-cli block create-tree --parent "$UID"
+# Save article notes to a specific daily page
+cat article.md | roam-cli save --to-daily-page 2026-03-14
+
+# Find a block on a daily page then create tree under it
+UID=$(roam-cli block find --daily 2026-02-15 --text "[[📖 Daily Reading]]")
+echo '{"text":"headline","children":[{"text":"snapshot"}]}' \
+  | roam-cli block create-tree --parent "$UID"
 ```
 
 ## Low-level block operations
