@@ -6,9 +6,10 @@ It supports:
 - page/block retrieval
 - full-text block search
 - raw datalog queries
-- markdown import as pages
+- markdown import as pages or under daily pages
 - daily journal extraction
 - low-level block and batch write operations
+- automatic batch chunking and rate-limit retry
 
 ---
 
@@ -71,20 +72,33 @@ roam-cli status --json --jq '.ok'
 - `get` — read page by title or block by uid
 - `search` — search blocks by terms
 - `q` — run raw datalog query
-- `save` (`save-markdown`) — save markdown as a page
-- `journal` (`get-journaling-by-date`, `journaling`) — read daily journaling blocks
-
-### Output modes
-
-- Parseable output is available via `--json`.
-- Human-readable output is available via `--plain` (or default plain output when omitted).
-- `--json` and `--plain` are mutually exclusive.
-- `--jq` requires `--json` (supported on `status` and `q`).
+- `save` — save markdown as a page (`--title`), daily page (`--to-daily-page`), or under a parent block (`--parent`)
+- `journal` — read daily journaling blocks
+- `help` — show help or categorized examples (`help read`, `help write`, `help workflow`, `help all`)
 
 ### Low-level commands
 
 - `block create|update|delete|move|get|find|create-tree`
 - `batch run` (native actions + `create-with-children` DSL)
+
+### Output modes
+
+- `--json` — parseable JSON output
+- `--plain` — human-readable plain text
+- `--json` and `--plain` are mutually exclusive
+- `--jq` — filter JSON (supported on `status` and `q`, requires `--json`)
+
+### Pipeline support
+
+Commands that accept input (`save`, `block create-tree`, `batch run`) read from stdin by default when `--file` is not given. No `--stdin` flag needed.
+
+### Date handling
+
+ISO dates (YYYY-MM-DD) are auto-resolved to Roam daily page titles wherever a page reference is expected:
+
+- `save --to-daily-page 2026-03-14` → saves to "March 14th, 2026"
+- `search --page 2026-03-14` → searches in "March 14th, 2026"
+- `block find --page 2026-03-14` → finds in "March 14th, 2026"
 
 ---
 
@@ -93,46 +107,58 @@ roam-cli status --json --jq '.ok'
 ```bash
 # status
 roam-cli status --plain
-roam-cli status --json
 roam-cli status --json --jq '.ok'
 
 # read
-roam-cli get "Page Title" --plain
+roam-cli get "Page Title"
 roam-cli get "((block-uid))" --json
 
 # search
-roam-cli search term1 term2 --limit 20 --plain
-roam-cli search term1 term2 --limit 20 --json
+roam-cli search term1 term2 --limit 20
+roam-cli search keyword --page 2026-03-14
 
 # query
 roam-cli q '[:find ?title :where [?e :node/title ?title]]' --json
-roam-cli q '[:find ?title :where [?e :node/title ?title]]' --json --jq '.[0]'
 
 # save markdown to a new page
-roam-cli save --title "New Page" --file ./examples/note.md --json
-cat ./examples/note.md | roam-cli save --title "New Page" --plain
+cat note.md | roam-cli save --title "New Page"
 
-# save markdown under an existing block
-roam-cli save --parent "3f3578fe-dd11-420d-a896-90a65ed913c1" --file ./examples/note.md --json
+# save to today's daily page
+cat note.md | roam-cli save --to-daily-page
+
+# save to a specific daily page
+cat note.md | roam-cli save --to-daily-page 2026-03-14
+
+# save under an existing parent block
+roam-cli save --parent <uid> --file ./note.md
 
 # journal
-roam-cli journal --date 2026-02-12 --plain
-roam-cli journal --date 2026-02-12 --json
+roam-cli journal --date 2026-02-12
+roam-cli journal --date 2026-02-12 --topic "Work Log" --json
 
-# low-level block
-roam-cli block create --parent "02-12-2026" --text "hello" --json
-roam-cli block move --uid "source-block-uid" --parent "target-parent-uid" --order last --json
+# find block on a daily page
+roam-cli block find --text "[[📖 Daily Reading]]" --daily 2026-02-15
+roam-cli block find --text "[[📖 Daily Reading]]" --page 2026-02-15
 
-# create nested tree from JSON (text/string compatible)
-roam-cli block create-tree --parent "3f3578fe-dd11-420d-a896-90a65ed913c1" --file ./examples/tree.create-tree.compat.json --json
+# create nested tree from JSON
+echo '{"text":"headline","children":[{"text":"child"}]}' \
+  | roam-cli block create-tree --parent <uid>
+roam-cli block create-tree --parent <uid> --file ./tree.json
 
-# low-level batch (native actions)
-roam-cli batch run --file ./examples/actions.create-page-and-block.json --json
-roam-cli batch run --file ./examples/actions.bulk-update.json --json
-roam-cli batch run --file ./examples/actions.bulk-move.json --json
+# low-level block operations
+roam-cli block create --parent <uid> --text "hello"
+roam-cli block update --uid <uid> --text "updated"
+roam-cli block move --uid <uid> --parent <target-uid> --order last
+roam-cli block delete --uid <uid>
 
-# batch DSL
-roam-cli batch run --file ./examples/actions.create-with-children.json --json
+# batch operations
+roam-cli batch run --file ./examples/actions.create-page-and-block.json
+echo '[...]' | roam-cli batch run
+
+# categorized help
+roam-cli help write
+roam-cli help workflow
+roam-cli help all
 ```
 
 ---
