@@ -283,7 +283,7 @@ func newBlockFindCmd() *cobra.Command {
 				return nil
 			}
 
-			uid, err := client.FindBlockUID(text, page, nil)
+			uid, err := client.FindBlockUID(text, maybeResolveDailyTitle(page), nil)
 			if err != nil {
 				return err
 			}

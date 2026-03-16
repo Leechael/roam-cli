@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/itchyny/gojq"
+
+	"roam-cli/internal/roam"
 )
 
 func prettyPrint(v any) error {
@@ -86,6 +88,17 @@ func validateOutputFlags(asJSON, asPlain bool) error {
 		return fmt.Errorf("--json and --plain cannot be used together")
 	}
 	return nil
+}
+
+// maybeResolveDailyTitle checks if s looks like a date string (e.g. "2026-03-14").
+// If so, it returns the Roam daily page title ("March 14th, 2026").
+// Otherwise it returns s unchanged.
+func maybeResolveDailyTitle(s string) string {
+	t, err := parseDateFlexible(s)
+	if err != nil || strings.TrimSpace(s) == "" {
+		return s
+	}
+	return roam.DailyTitle(t)
 }
 
 func parseDateFlexible(v string) (time.Time, error) {

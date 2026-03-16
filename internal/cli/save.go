@@ -10,17 +10,22 @@ import (
 	"roam-cli/internal/roam"
 )
 
-func validateSaveTarget(title, parentUID, pageUID string) error {
-	t := strings.TrimSpace(title)
-	p := strings.TrimSpace(parentUID)
-	if t == "" && p == "" {
-		return fmt.Errorf("one of --title or --parent is required")
+func validateSaveTarget(title, parentUID, dailyPage string) error {
+	set := 0
+	if strings.TrimSpace(title) != "" {
+		set++
 	}
-	if t != "" && p != "" {
-		return fmt.Errorf("--title and --parent cannot be used together")
+	if strings.TrimSpace(parentUID) != "" {
+		set++
 	}
-	if p != "" && strings.TrimSpace(pageUID) != "" {
-		return fmt.Errorf("--uid can only be used with --title")
+	if strings.TrimSpace(dailyPage) != "" {
+		set++
+	}
+	if set == 0 {
+		return fmt.Errorf("one of --title, --parent, or --to-daily-page is required")
+	}
+	if set > 1 {
+		return fmt.Errorf("--title, --parent, and --to-daily-page are mutually exclusive")
 	}
 	return nil
 }
@@ -28,6 +33,7 @@ func validateSaveTarget(title, parentUID, pageUID string) error {
 func newSaveCmd() *cobra.Command {
 	var title string
 	var parentUID string
+	var dailyPage string
 	var file string
 	var useStdin bool
 	var pageUID string
@@ -38,14 +44,28 @@ func newSaveCmd() *cobra.Command {
 		Use:     "save",
 		Aliases: []string{"save-markdown"},
 		Short:   "Save markdown as a Roam page or under a parent block",
-		Example: "  cat note.md | roam-cli save --title \"New Page\"\n  roam-cli save --title \"New Page\" --file ./note.md\n  roam-cli save --parent <block-uid> --file ./note.md",
+		Example: "  cat note.md | roam-cli save --title \"New Page\"\n  cat note.md | roam-cli save --to-daily-page 2026-03-14\n  roam-cli save --parent <block-uid> --file ./note.md",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := validateOutputFlags(asJSON, asPlain); err != nil {
 				return err
 			}
-			if err := validateSaveTarget(title, parentUID, pageUID); err != nil {
+			if err := validateSaveTarget(title, parentUID, dailyPage); err != nil {
 				return err
 			}
+
+			// Resolve --to-daily-page into --title
+			if strings.TrimSpace(dailyPage) != "" {
+				when, err := parseDateFlexible(dailyPage)
+				if err != nil {
+					return fmt.Errorf("invalid date for --to-daily-page: %w", err)
+				}
+				title = roam.DailyTitle(when)
+			}
+
+			if strings.TrimSpace(pageUID) != "" && strings.TrimSpace(title) == "" {
+				return fmt.Errorf("--uid can only be used with --title")
+			}
+
 			raw, err := readAllFromFileOrStdin(file, useStdin || file == "")
 			if err != nil {
 				return err
@@ -96,8 +116,9 @@ func newSaveCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&title, "title", "", "Page title (required unless --parent is set)")
-	cmd.Flags().StringVar(&parentUID, "parent", "", "Target parent block UID (required unless --title is set)")
+	cmd.Flags().StringVar(&title, "title", "", "Page title (required unless --parent or --to-daily-page is set)")
+	cmd.Flags().StringVar(&parentUID, "parent", "", "Target parent block UID")
+	cmd.Flags().StringVar(&dailyPage, "to-daily-page", "", "Save to daily page by date (e.g. 2026-03-14, defaults to today)")
 	cmd.Flags().StringVar(&file, "file", "", "Markdown file path (default: stdin)")
 	cmd.Flags().BoolVar(&useStdin, "stdin", false, "Read markdown from stdin")
 	cmd.Flags().StringVar(&pageUID, "uid", "", "Optional page uid (only with --title)")

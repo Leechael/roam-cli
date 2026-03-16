@@ -28,7 +28,7 @@ func newSearchCmd() *cobra.Command {
 				return err
 			}
 
-			results, err := client.SearchBlocks(args, limit, !ignoreCase, page)
+			results, err := client.SearchBlocks(args, limit, !ignoreCase, maybeResolveDailyTitle(page))
 			if err != nil {
 				return err
 			}
