@@ -18,14 +18,18 @@ type globalOptions struct {
 
 var opts globalOptions
 
+// Version is set at build time via -ldflags.
+var Version = "dev"
+
 func Execute() error {
 	return newRootCmd().Execute()
 }
 
 func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
-		Use:   "roam-cli",
-		Short: "Roam Research CLI (Go)",
+		Use:     "roam-cli",
+		Short:   "Roam Research CLI (Go)",
+		Version: Version,
 	}
 
 	root.PersistentFlags().StringVar(&opts.token, "token", "", "Roam API token (overrides ROAM_API_TOKEN)")
