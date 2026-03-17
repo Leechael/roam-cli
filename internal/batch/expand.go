@@ -7,19 +7,40 @@ import (
 	"roam-cli/internal/roam"
 )
 
+// BlockFinder resolves a block UID by text under a parent.
+// Returns empty string (not error) when no match is found.
+type BlockFinder interface {
+	FindBlockUnderParent(text string, parentUID string) (string, error)
+}
+
 // ExpandActions expands high-level DSL actions into native Roam write actions.
-// Unknown actions are passed through unchanged for backward compatibility.
-func ExpandActions(actions []map[string]any) ([]map[string]any, error) {
+// finder may be nil if no attach-to resolution is needed.
+func ExpandActions(actions []map[string]any, finder BlockFinder) ([]map[string]any, error) {
 	out := make([]map[string]any, 0, len(actions))
 	for i, action := range actions {
 		typeName, _ := action["action"].(string)
+		path := fmt.Sprintf("actions[%d]", i)
 		switch typeName {
 		case "create-with-children":
-			expanded, err := expandCreateWithChildren(action, fmt.Sprintf("actions[%d]", i))
+			expanded, err := expandCreateWithChildren(action, path, finder)
 			if err != nil {
 				return nil, err
 			}
 			out = append(out, expanded...)
+		case "create-block":
+			block, _ := action["block"].(map[string]any)
+			hasChildren := block != nil && block["children"] != nil
+			loc, _ := action["location"].(map[string]any)
+			hasAttachTo := loc != nil && strings.TrimSpace(stringField(loc, "attach-to")) != ""
+			if hasChildren || hasAttachTo {
+				expanded, err := expandCreateWithChildren(action, path, finder)
+				if err != nil {
+					return nil, err
+				}
+				out = append(out, expanded...)
+			} else {
+				out = append(out, action)
+			}
 		default:
 			out = append(out, action)
 		}
@@ -35,7 +56,7 @@ type createNode struct {
 	Children []createNode
 }
 
-func expandCreateWithChildren(action map[string]any, path string) ([]map[string]any, error) {
+func expandCreateWithChildren(action map[string]any, path string, finder BlockFinder) ([]map[string]any, error) {
 	loc, ok := action["location"].(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("%s.location must be an object", path)
@@ -47,6 +68,41 @@ func expandCreateWithChildren(action map[string]any, path string) ([]map[string]
 	rootOrder, _ := loc["order"].(string)
 	if strings.TrimSpace(rootOrder) == "" {
 		rootOrder = "last"
+	}
+
+	// Handle attach-to: find-or-create an intermediate parent
+	attachTo := strings.TrimSpace(stringField(loc, "attach-to"))
+	if attachTo != "" {
+		if finder == nil {
+			return nil, fmt.Errorf("%s.location.attach-to requires a connected client", path)
+		}
+		foundUID, err := finder.FindBlockUnderParent(attachTo, parentUID)
+		if err != nil {
+			return nil, fmt.Errorf("%s: attach-to lookup failed: %w", path, err)
+		}
+		if foundUID != "" {
+			parentUID = foundUID
+		} else {
+			// Create the attach-to block, then use it as parent
+			newUID := roam.NewUID()
+			var expanded []map[string]any
+			expanded = append(expanded, roam.CreateBlockAction(attachTo, parentUID, newUID, rootOrder, true))
+			parentUID = newUID
+			// Children go under the newly created attach-to block
+			block, ok := action["block"].(map[string]any)
+			if !ok {
+				return expanded, nil
+			}
+			root, err := parseCreateNode(block, path+".block")
+			if err != nil {
+				return nil, err
+			}
+			if strings.TrimSpace(root.Order) == "" {
+				root.Order = "last"
+			}
+			appendNodeActions(&expanded, parentUID, root)
+			return expanded, nil
+		}
 	}
 
 	block, ok := action["block"].(map[string]any)

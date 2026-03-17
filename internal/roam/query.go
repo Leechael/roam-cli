@@ -233,6 +233,34 @@ func (c *Client) FindBlockUID(text string, pageTitle string, dailyDate *time.Tim
 	return fmt.Sprintf("%v", first[0]), nil
 }
 
+// FindBlockUnderParent finds a direct child block with matching text under the given parent UID.
+// Returns the block UID if found, or empty string if not found.
+func (c *Client) FindBlockUnderParent(text string, parentUID string) (string, error) {
+	escaped := escapeDatalogString(text)
+	escapedParent := escapeDatalogString(parentUID)
+	query := fmt.Sprintf(`
+[:find ?uid
+ :where
+   [?parent :block/uid "%s"]
+   [?b :block/parents ?parent]
+   [?b :block/string "%s"]
+   [?b :block/uid ?uid]]
+`, escapedParent, escaped)
+	result, err := c.Q(query, nil)
+	if err != nil {
+		return "", err
+	}
+	rows := toSlice(result)
+	if len(rows) == 0 {
+		return "", nil
+	}
+	first := toSlice(rows[0])
+	if len(first) == 0 {
+		return "", nil
+	}
+	return fmt.Sprintf("%v", first[0]), nil
+}
+
 func (c *Client) GetJournalingByDate(day time.Time, topicNode string) ([]map[string]any, error) {
 	dateUID := day.Format("01-02-2006")
 

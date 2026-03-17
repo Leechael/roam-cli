@@ -78,8 +78,8 @@ roam-cli status --json --jq '.ok'
 
 ### Low-level commands
 
-- `block create|update|delete|move|get|find|create-tree`
-- `batch run` (native actions + `create-with-children` DSL)
+- `block create|update|delete|move|get|find`
+- `batch run` (native actions; `create-block` supports children and `attach-to`)
 
 ### Output modes
 
@@ -90,7 +90,7 @@ roam-cli status --json --jq '.ok'
 
 ### Pipeline support
 
-Commands that accept input (`save`, `block create-tree`, `batch run`) read from stdin by default when `--file` is not given. No `--stdin` flag needed.
+Commands that accept input (`save`, `block create`, `batch run`) read from stdin by default when `--file` is not given. No `--stdin` flag needed.
 
 ### Date handling
 
@@ -140,13 +140,12 @@ roam-cli journal --date 2026-02-12 --topic "Work Log" --json
 roam-cli block find --text "[[📖 Daily Reading]]" --daily 2026-02-15
 roam-cli block find --text "[[📖 Daily Reading]]" --page 2026-02-15
 
-# create nested tree from JSON
-echo '{"text":"headline","children":[{"text":"child"}]}' \
-  | roam-cli block create-tree --parent <uid>
-roam-cli block create-tree --parent <uid> --file ./tree.json
-
-# low-level block operations
+# create blocks (single, nested tree, attach-to)
 roam-cli block create --parent <uid> --text "hello"
+echo '{"text":"headline","children":[{"text":"child"}]}' \
+  | roam-cli block create --parent <uid>
+roam-cli block create --parent <uid> --file ./tree.json
+roam-cli block create --parent <page-uid> --attach-to "[[Section]]" --text "item"
 roam-cli block update --uid <uid> --text "updated"
 roam-cli block move --uid <uid> --parent <target-uid> --order last
 roam-cli block delete --uid <uid>

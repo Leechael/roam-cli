@@ -22,20 +22,33 @@ func newBlockCmd() *cobra.Command {
 	block.AddCommand(newBlockMoveCmd())
 	block.AddCommand(newBlockGetCmd())
 	block.AddCommand(newBlockFindCmd())
-	block.AddCommand(newBlockCreateTreeCmd())
 
 	return block
 }
 
 func newBlockCreateCmd() *cobra.Command {
 	var parentUID, text, uid, order string
+	var attachTo string
+	var file string
+	var useStdin bool
 	var open bool
 	var asJSON bool
 	var asPlain bool
 
 	cmd := &cobra.Command{
 		Use:   "create",
-		Short: "Create a block",
+		Short: "Create a block or nested tree of blocks",
+		Long: `Create blocks under a parent UID. Supports three modes:
+
+1. Single block:   --text "content"
+2. Nested tree:    --file tree.json  (or pipe JSON via stdin)
+3. Attach-to:      --attach-to "[[Section]]" finds or creates the section block
+                   under --parent, then creates content under it.
+
+JSON input accepts a single object or array; each node: text/string, children, uid, order, open.`,
+		Example: `  roam-cli block create --parent <uid> --text "Hello"
+  echo '{"text":"Root","children":[{"text":"Child"}]}' | roam-cli block create --parent <uid>
+  roam-cli block create --parent <uid> --attach-to "[[📽 Journaling]]" --file items.json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := validateOutputFlags(asJSON, asPlain); err != nil {
 				return err
@@ -43,16 +56,97 @@ func newBlockCreateCmd() *cobra.Command {
 			if parentUID == "" {
 				return errMissingFlag("parent")
 			}
-			if text == "" {
-				return errMissingFlag("text")
-			}
 
 			client, err := mustClient()
 			if err != nil {
 				return err
 			}
 
-			action := roam.CreateBlockAction(text, parentUID, uid, order, open)
+			// Resolve attach-to: find or create the intermediate parent
+			effectiveParent := parentUID
+			if attachTo != "" {
+				foundUID, err := client.FindBlockUnderParent(attachTo, parentUID)
+				if err != nil {
+					return fmt.Errorf("attach-to lookup failed: %w", err)
+				}
+				if foundUID != "" {
+					effectiveParent = foundUID
+				} else {
+					// Create the attach-to block
+					newUID := roam.NewUID()
+					action := roam.CreateBlockAction(attachTo, parentUID, newUID, order, true)
+					if _, err := client.Write(action); err != nil {
+						return fmt.Errorf("failed to create attach-to block: %w", err)
+					}
+					effectiveParent = newUID
+				}
+			}
+
+			// Determine mode: JSON tree input vs single block
+			hasFile := file != ""
+			hasStdin := useStdin
+			hasText := text != ""
+
+			if hasFile || hasStdin {
+				// Tree mode: JSON input
+				raw, err := readAllFromFileOrStdin(file, hasStdin || file != "")
+				if err != nil {
+					return err
+				}
+				nodes, err := parseTreeNodes(raw)
+				if err != nil {
+					return err
+				}
+
+				var actions []map[string]any
+				if err := walkTree(&actions, effectiveParent, nodes, "root"); err != nil {
+					return err
+				}
+				if len(actions) == 0 {
+					return fmt.Errorf("no blocks to create")
+				}
+
+				resp, err := client.BatchActions(actions)
+				if err != nil {
+					return err
+				}
+				if asPlain {
+					fmt.Println("ok")
+					return nil
+				}
+				return prettyPrint(resp)
+			}
+
+			if !hasText {
+				// Try reading stdin as JSON if no --text and no --file
+				raw, err := readAllFromFileOrStdin("", true)
+				if err == nil && strings.TrimSpace(raw) != "" {
+					nodes, err := parseTreeNodes(raw)
+					if err != nil {
+						return errMissingFlag("text")
+					}
+					var actions []map[string]any
+					if err := walkTree(&actions, effectiveParent, nodes, "root"); err != nil {
+						return err
+					}
+					if len(actions) == 0 {
+						return fmt.Errorf("no blocks to create")
+					}
+					resp, err := client.BatchActions(actions)
+					if err != nil {
+						return err
+					}
+					if asPlain {
+						fmt.Println("ok")
+						return nil
+					}
+					return prettyPrint(resp)
+				}
+				return errMissingFlag("text")
+			}
+
+			// Single block mode
+			action := roam.CreateBlockAction(text, effectiveParent, uid, order, open)
 			resp, err := client.Write(action)
 			if err != nil {
 				return err
@@ -67,15 +161,48 @@ func newBlockCreateCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&parentUID, "parent", "", "Parent uid")
-	cmd.Flags().StringVar(&text, "text", "", "Block text")
-	cmd.Flags().StringVar(&uid, "uid", "", "Optional uid")
+	cmd.Flags().StringVar(&parentUID, "parent", "", "Parent block UID (required)")
+	cmd.Flags().StringVar(&text, "text", "", "Block text (single block mode)")
+	cmd.Flags().StringVar(&uid, "uid", "", "Optional block uid")
 	cmd.Flags().StringVar(&order, "order", "last", "Order: first|last|<int>")
 	cmd.Flags().BoolVar(&open, "open", true, "Block open state")
-	cmd.Flags().BoolVar(&asJSON, "json", false, "Output create result as JSON")
-	cmd.Flags().BoolVar(&asPlain, "plain", false, "Output create result as plain text")
+	cmd.Flags().StringVar(&attachTo, "attach-to", "", "Find or create a block with this text under parent, use as actual parent")
+	cmd.Flags().StringVar(&file, "file", "", "JSON input file for tree creation")
+	cmd.Flags().BoolVar(&useStdin, "stdin", false, "Read JSON tree from stdin")
+	cmd.Flags().BoolVar(&asJSON, "json", false, "Output result as JSON")
+	cmd.Flags().BoolVar(&asPlain, "plain", false, "Output result as plain text")
 
 	return cmd
+}
+
+// walkTree recursively generates create-block actions from tree nodes.
+func walkTree(actions *[]map[string]any, parent string, children []treeNode, path string) error {
+	for i, node := range children {
+		nodePath := fmt.Sprintf("%s[%d]", path, i)
+		text := strings.TrimSpace(node.blockText())
+		if text == "" {
+			return fmt.Errorf("%s text is required (use \"text\" or \"string\")", nodePath)
+		}
+		uid := strings.TrimSpace(node.UID)
+		if uid == "" {
+			uid = roam.NewUID()
+		}
+		order := strings.TrimSpace(node.Order)
+		if order == "" {
+			order = "last"
+		}
+		open := true
+		if node.Open != nil {
+			open = *node.Open
+		}
+		*actions = append(*actions, roam.CreateBlockAction(text, parent, uid, order, open))
+		if len(node.Children) > 0 {
+			if err := walkTree(actions, uid, node.Children, nodePath+".children"); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func newBlockUpdateCmd() *cobra.Command {
@@ -312,100 +439,6 @@ func (n treeNode) blockText() string {
 		return n.Text
 	}
 	return n.String
-}
-
-func newBlockCreateTreeCmd() *cobra.Command {
-	var parentUID string
-	var file string
-	var useStdin bool
-	var asJSON bool
-	var asPlain bool
-
-	cmd := &cobra.Command{
-		Use:     "create-tree",
-		Short:   "Create a nested tree of blocks atomically",
-		Long:    "Create a nested tree under a parent block UID. Input JSON accepts either a single node object or an array of nodes. Each node supports text (or string), optional children, uid, order, and open.",
-		Example: "  echo '{\"text\":\"Root\",\"children\":[{\"string\":\"Child\"}]}' | roam-cli block create-tree --parent <uid>\n  roam-cli block create-tree --parent <uid> --file ./tree.json",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := validateOutputFlags(asJSON, asPlain); err != nil {
-				return err
-			}
-			if parentUID == "" {
-				return errMissingFlag("parent")
-			}
-
-			raw, err := readAllFromFileOrStdin(file, useStdin || file == "")
-			if err != nil {
-				return err
-			}
-
-			nodes, err := parseTreeNodes(raw)
-			if err != nil {
-				return err
-			}
-
-			var actions []map[string]any
-			var walkTree func(parent string, children []treeNode, path string) error
-			walkTree = func(parent string, children []treeNode, path string) error {
-				for i, node := range children {
-					nodePath := fmt.Sprintf("%s[%d]", path, i)
-					text := strings.TrimSpace(node.blockText())
-					if text == "" {
-						return fmt.Errorf("%s text is required (use \"text\" or \"string\")", nodePath)
-					}
-					uid := strings.TrimSpace(node.UID)
-					if uid == "" {
-						uid = roam.NewUID()
-					}
-					order := strings.TrimSpace(node.Order)
-					if order == "" {
-						order = "last"
-					}
-					open := true
-					if node.Open != nil {
-						open = *node.Open
-					}
-					actions = append(actions, roam.CreateBlockAction(text, parent, uid, order, open))
-					if len(node.Children) > 0 {
-						if err := walkTree(uid, node.Children, nodePath+".children"); err != nil {
-							return err
-						}
-					}
-				}
-				return nil
-			}
-			if err := walkTree(parentUID, nodes, "root"); err != nil {
-				return err
-			}
-
-			if len(actions) == 0 {
-				return fmt.Errorf("no blocks to create")
-			}
-
-			client, err := mustClient()
-			if err != nil {
-				return err
-			}
-
-			resp, err := client.BatchActions(actions)
-			if err != nil {
-				return err
-			}
-
-			if asPlain {
-				fmt.Println("ok")
-				return nil
-			}
-			return prettyPrint(resp)
-		},
-	}
-
-	cmd.Flags().StringVar(&parentUID, "parent", "", "Parent block UID (required)")
-	cmd.Flags().StringVar(&file, "file", "", "JSON input file")
-	cmd.Flags().BoolVar(&useStdin, "stdin", false, "Read JSON from stdin")
-	cmd.Flags().BoolVar(&asJSON, "json", false, "Output result as JSON")
-	cmd.Flags().BoolVar(&asPlain, "plain", false, "Output result as plain text")
-	return cmd
 }
 
 func parseTreeNodes(raw string) ([]treeNode, error) {

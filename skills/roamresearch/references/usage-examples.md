@@ -60,19 +60,26 @@ roam-cli block find --text "[[📖 Daily Reading]]" --page 2026-02-15
 roam-cli block find --text "Status" --page "Project Dashboard"
 ```
 
-## Create nested block tree
+## Create blocks
 
-`block create-tree` supports both `text` and `string` keys (+ `children`).
+`block create` supports single blocks, nested trees (JSON), and `--attach-to` for find-or-create.
 
 ```bash
-# From pipe (single object)
-echo '{"text":"headline","children":[{"text":"snapshot"}]}' | roam-cli block create-tree --parent <uid>
+# Single block
+roam-cli block create --parent <uid> --text "hello"
 
-# From pipe (array)
-echo '[{"text":"item1"},{"text":"item2","children":[{"text":"sub"}]}]' | roam-cli block create-tree --parent <uid>
+# Nested tree from pipe (single object)
+echo '{"text":"headline","children":[{"text":"snapshot"}]}' | roam-cli block create --parent <uid>
+
+# Nested tree from pipe (array)
+echo '[{"text":"item1"},{"text":"item2","children":[{"text":"sub"}]}]' | roam-cli block create --parent <uid>
 
 # From file
-roam-cli block create-tree --parent <uid> --file ./tree.json
+roam-cli block create --parent <uid> --file ./tree.json
+
+# Attach-to: find or create section, then insert under it
+roam-cli block create --parent <page-uid> --attach-to "[[📽 Journaling]]" --text "new item"
+roam-cli block create --parent <page-uid> --attach-to "[[📽 Journaling]]" --file items.json
 ```
 
 ## Daily page workflows (one-shot)
@@ -85,16 +92,13 @@ echo '{"text":"🐦 tweet headline","children":[{"text":"key point"}]}' \
 # Save article notes to a specific daily page
 cat article.md | roam-cli save --to-daily-page 2026-03-14
 
-# Find a block on a daily page then create tree under it
-UID=$(roam-cli block find --daily 2026-02-15 --text "[[📖 Daily Reading]]")
-echo '{"text":"headline","children":[{"text":"snapshot"}]}' \
-  | roam-cli block create-tree --parent "$UID"
+# Insert under a section on a daily page (attach-to)
+roam-cli block create --parent <daily-page-uid> --attach-to "[[📖 Daily Reading]]" --file article.json
 ```
 
 ## Low-level block operations
 
 ```bash
-roam-cli block create --parent <uid> --text "hello"
 roam-cli block update --uid <uid> --text "updated"
 roam-cli block move --uid <uid> --parent <target-parent-uid> --order last
 roam-cli block delete --uid <uid>
@@ -109,6 +113,10 @@ roam-cli batch run --file ./examples/actions.create-page-and-block.json
 roam-cli batch run --file ./examples/actions.bulk-update.json
 roam-cli batch run --file ./examples/actions.bulk-move.json
 
-# DSL batch action
-roam-cli batch run --file ./examples/actions.create-with-children.json
+# Batch with children and attach-to
+echo '[
+  {"action":"create-block",
+   "location":{"parent-uid":"page-uid","attach-to":"[[📽 Journaling]]","order":"last"},
+   "block":{"string":"new item"}}
+]' | roam-cli batch run
 ```

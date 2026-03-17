@@ -48,7 +48,7 @@ var categories = []exampleCategory{
 	},
 	{
 		Name: "write",
-		Desc: "Save markdown, create trees, batch operations, single-block writes",
+		Desc: "Save markdown, create blocks, batch operations",
 		Content: `## Save to daily page (preferred for daily notes — one-shot)
 
   cat note.md | roam-cli save --to-daily-page
@@ -60,24 +60,27 @@ var categories = []exampleCategory{
   roam-cli save --title "New Page" --file ./note.md
   roam-cli save --parent <uid> --file ./note.md
 
-## Create nested block tree (preferred for structured data)
+## Create blocks (single, nested tree, or attach-to)
 
+  # Single block
+  roam-cli block create --parent <uid> --text "hello"
+
+  # Nested tree from JSON
   echo '{"text":"headline","children":[{"text":"child 1"},{"text":"child 2"}]}' \
-    | roam-cli block create-tree --parent <uid>
+    | roam-cli block create --parent <uid>
+  roam-cli block create --parent <uid> --file ./tree.json
 
-  echo '[{"text":"item1"},{"text":"item2","children":[{"text":"sub"}]}]' \
-    | roam-cli block create-tree --parent <uid>
-
-  roam-cli block create-tree --parent <uid> --file ./tree.json
+  # Attach-to: find or create section, then insert under it
+  roam-cli block create --parent <page-uid> --attach-to "[[📽 Journaling]]" --text "item"
+  roam-cli block create --parent <page-uid> --attach-to "[[📽 Journaling]]" --file items.json
 
 ## Batch operations (preferred for mixed action types)
 
   roam-cli batch run --file ./actions.json
   echo '[...]' | roam-cli batch run
 
-## Single-block operations (use only when a single block suffices)
+## Other block operations
 
-  roam-cli block create --parent <uid> --text "hello"
   roam-cli block update --uid <uid> --text "updated"
   roam-cli block move   --uid <uid> --parent <target-uid> --order last
   roam-cli block delete --uid <uid>`,
@@ -90,14 +93,11 @@ var categories = []exampleCategory{
   cat note.md | roam-cli save --to-daily-page
   echo '# Article Summary' | roam-cli save --to-daily-page 2026-03-14
 
-## Save a tweet/article under a specific block (2 calls)
+## Insert under an existing section (1 call with --attach-to)
 
-  # Find the target block, then create tree under it
-  UID=$(roam-cli block find --daily 2026-02-15 --text "[[📖 Daily Reading]]")
-  echo '{"text":"Article Title","children":[
-    {"text":"Key point 1"},
-    {"text":"Key point 2"}
-  ]}' | roam-cli block create-tree --parent "$UID"
+  # Find or create "Daily Reading" section, insert under it
+  roam-cli block create --parent <daily-page-uid> \
+    --attach-to "[[📖 Daily Reading]]" --file article.json
 
 ## Build a project status tree (1 call, not N)
 
@@ -106,12 +106,12 @@ var categories = []exampleCategory{
   #   roam-cli block create --parent $uid1 --text "Task 1"
   #   roam-cli block create --parent $uid1 --text "Task 2"
 
-  # RIGHT: single create-tree call
+  # RIGHT: single call with JSON tree
   echo '{"text":"Project A","children":[
     {"text":"Task 1"},
     {"text":"Task 2"},
     {"text":"Task 3","children":[{"text":"Subtask 3.1"}]}
-  ]}' | roam-cli block create-tree --parent "$PAGE"
+  ]}' | roam-cli block create --parent "$PAGE"
 
 ## Search/find on a daily page (pass ISO date)
 

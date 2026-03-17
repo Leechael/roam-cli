@@ -24,7 +24,7 @@ func newBatchCmd() *cobra.Command {
 	run := &cobra.Command{
 		Use:     "run",
 		Short:   "Run Roam batch-actions from JSON array",
-		Long:    "Run Roam batch-actions from JSON array. Supports native actions (create-block, update-block, delete-block, move-block) and DSL action create-with-children.",
+		Long:    "Run Roam batch-actions from JSON array. Supports native actions (create-block, update-block, delete-block, move-block) and children/attach-to in create-block.",
 		Example: "  roam-cli batch run --file ./examples/actions.bulk-update.json\n  roam-cli batch run --file ./examples/actions.create-with-children.json",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := validateOutputFlags(asJSON, asPlain); err != nil {
@@ -44,15 +44,16 @@ func newBatchCmd() *cobra.Command {
 				return err
 			}
 
-			expanded, err := batchdsl.ExpandActions(actions)
-			if err != nil {
-				return err
-			}
-
 			client, err := mustClient()
 			if err != nil {
 				return err
 			}
+
+			expanded, err := batchdsl.ExpandActions(actions, client)
+			if err != nil {
+				return err
+			}
+
 			resp, err := client.BatchActions(expanded)
 			if err != nil {
 				return err
