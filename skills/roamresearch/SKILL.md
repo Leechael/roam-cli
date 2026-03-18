@@ -22,6 +22,7 @@ If not set up, see `references/installation.md`.
 |---|---|
 | `get` | Read page by title or block by UID |
 | `search` | Search blocks by terms |
+| `search-pages` | Multi-query search aggregated by page, with daily page drill-down |
 | `q` | Run raw datalog query |
 | `save` | Save GFM markdown as a page, daily page, or under a parent block |
 | `journal` | Read daily journaling blocks |
@@ -31,6 +32,51 @@ If not set up, see `references/installation.md`.
 | `batch run` | Batch actions from JSON array |
 
 Run `roam-cli help <category>` for categorized usage examples. Categories: `read`, `write`, `workflow`, or `all`.
+
+## Search Strategy
+
+**Use `search-pages` for broad retrieval, `search` for targeted lookup.**
+
+| Scenario | Use this |
+|---|---|
+| Find pages related to a topic across the whole graph | `search-pages` with multiple query args |
+| Find specific blocks containing exact terms | `search` |
+| Search within a known page | `search --page "Page Title"` |
+
+### `search-pages` — multi-query page-level search
+
+Each positional argument is an independent query. Terms within one argument are AND-matched (block must contain all terms). Results are deduplicated, aggregated by page, and sorted by queries matched then hit count.
+
+```bash
+# Multiple independent queries — results merged and ranked
+roam-cli search-pages "SaaS 倒闭" "AI 贷款" "SaaS shutdown" -i
+
+# With --json for structured output (pipe to rerank tools)
+roam-cli search-pages "query1" "query2" -i --json
+
+# Limit results
+roam-cli search-pages "broad term" -i --limit 20
+```
+
+**Daily page handling:** Daily pages (e.g. "March 8th, 2026") are automatically drilled down to show sections instead of the whole page.
+
+```bash
+# Default: aggregate at first-level children of daily pages
+roam-cli search-pages "AI 贷款" -i
+
+# Drill deeper: aggregate at second level, filter first level by topic
+roam-cli search-pages "AI 贷款" -i --daily-depth 2 --daily-topic "📖 Daily Reading"
+```
+
+| Flag | Purpose |
+|---|---|
+| `--daily-depth N` | Aggregation depth for daily pages (default 1) |
+| `--daily-topic TEXT` | Filter daily page sections at level 1 by topic text |
+| `--limit N` | Max results to return (0 = unlimited) |
+| `-i` | Case-insensitive search |
+| `--json` | Structured JSON output |
+
+Output includes `((block_uid))` for each result — use `roam-cli get "((uid))"` to retrieve full content with children.
 
 ## Write Strategy (critical — read this first)
 
@@ -152,7 +198,7 @@ The CLI auto-resolves ISO dates (YYYY-MM-DD) to Roam daily page titles wherever 
 ## Recommended Workflow
 
 1. `roam-cli status` — verify credentials.
-2. Read: `get`, `search`, `q`, `journal`, `block find`.
+2. Read: `get`, `search`, `search-pages`, `q`, `journal`, `block find`.
 3. Write (pick one, in order of preference):
    - Daily page content → `save --to-daily-page`
    - Long markdown → `save --title`
