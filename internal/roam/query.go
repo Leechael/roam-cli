@@ -94,6 +94,91 @@ func (c *Client) GetBlockByUID(uid string) (map[string]any, error) {
 	return toMap(first[0]), nil
 }
 
+// EstimateResult holds block and page counts for a single query.
+type EstimateResult struct {
+	Query      string `json:"query"`
+	BlockCount int    `json:"block_count"`
+	PageCount  int    `json:"page_count"`
+}
+
+// EstimateSearch returns block and page counts for each query without
+// pulling full results. Uses Datalog count aggregation for efficiency.
+func (c *Client) EstimateSearch(queries []string, caseSensitive bool, pageTitle string) ([]EstimateResult, []string, error) {
+	var out []EstimateResult
+	var failed []string
+
+	for i, q := range queries {
+		if i > 0 {
+			time.Sleep(500 * time.Millisecond)
+		}
+		terms := strings.Fields(q)
+		if len(terms) == 0 {
+			continue
+		}
+
+		conditions := make([]string, 0, len(terms))
+		for _, term := range terms {
+			escaped := escapeDatalogString(term)
+			if caseSensitive {
+				conditions = append(conditions, fmt.Sprintf(`[(clojure.string/includes? ?s "%s")]`, escaped))
+			} else {
+				conditions = append(conditions, fmt.Sprintf(`[(clojure.string/includes? (clojure.string/lower-case ?s) "%s")]`, strings.ToLower(escaped)))
+			}
+		}
+		termConds := strings.Join(conditions, "\n    ")
+
+		var query string
+		if pageTitle != "" {
+			escapedTitle := escapeDatalogString(pageTitle)
+			query = fmt.Sprintf(`
+[:find (count ?b) (count-distinct ?p)
+ :where
+    [?page :node/title "%s"]
+    [?b :block/page ?page]
+    [?b :block/string ?s]
+    %s
+    [?b :block/page ?p]]
+`, escapedTitle, termConds)
+		} else {
+			query = fmt.Sprintf(`
+[:find (count ?b) (count-distinct ?p)
+ :where
+    [?b :block/string ?s]
+    [?b :block/page ?p]
+    %s]
+`, termConds)
+		}
+
+		result, err := c.Q(query, nil)
+		if err != nil {
+			failed = append(failed, fmt.Sprintf("%s (%v)", q, err))
+			continue
+		}
+
+		blocks, pages := 0, 0
+		rows := toSlice(result)
+		if len(rows) > 0 {
+			cols := toSlice(rows[0])
+			if len(cols) >= 2 {
+				if v, ok := cols[0].(float64); ok {
+					blocks = int(v)
+				}
+				if v, ok := cols[1].(float64); ok {
+					pages = int(v)
+				}
+			}
+		}
+
+		out = append(out, EstimateResult{
+			Query:      q,
+			BlockCount: blocks,
+			PageCount:  pages,
+		})
+	}
+
+	return out, failed, nil
+}
+
 func (c *Client) SearchBlocks(terms []string, limit int, caseSensitive bool, pageTitle string) ([]SearchResult, error) {
 	if len(terms) == 0 {
 		return []SearchResult{}, nil
