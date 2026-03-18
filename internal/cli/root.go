@@ -40,6 +40,7 @@ func newRootCmd() *cobra.Command {
 	root.AddCommand(newStatusCmd())
 	root.AddCommand(newGetCmd())
 	root.AddCommand(newSearchCmd())
+	root.AddCommand(newSearchPagesCmd())
 	root.AddCommand(newQCmd())
 	root.AddCommand(newSaveCmd())
 	root.AddCommand(newJournalCmd())
