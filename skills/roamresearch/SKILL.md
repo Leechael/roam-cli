@@ -24,7 +24,7 @@ If not set up, see `references/installation.md`.
 | `search` | Search blocks by terms |
 | `search-pages` | Multi-query search aggregated by page, with daily page drill-down |
 | `q` | Run raw datalog query |
-| `save` | Save GFM markdown as a page, daily page, or under a parent block |
+| `save` | Save GFM markdown as a page, daily page (`--to-daily-page` / `--today`), or under a parent block; `--under` finds-or-creates a child block |
 | `journal` | Read daily journaling blocks |
 | `block find` | Find block UID by text on a page/daily note |
 | `block create` | Create block(s) — single, nested tree, or with `--attach-to` |
@@ -84,8 +84,10 @@ Output includes `((block_uid))` for each result — use `roam-cli get "((uid))"`
 
 | Scenario | Use this | NOT this |
 |---|---|---|
-| Save content to today's daily page | `save --to-daily-page` | `journal` → parse UID → `save --parent` |
+| Save content to today's daily page | `save --today` | `journal` → parse UID → `save --parent` |
 | Save content to a specific daily page | `save --to-daily-page 2026-03-14` | `block find --daily` → `save --parent` |
+| Save under a section in today's daily page | `save --today --under '[[Section]]'` | `block find` → `block create --parent` |
+| Save under a section in any page | `save --title "Page" --under '[[Section]]'` | `block find` → `block create --parent` |
 | Save a long document/article as a page | `save --title "Page Name"` | Sequential `block create` |
 | Create a parent with children | `block create --parent <uid> --file tree.json` | `block create` parent → `block create` child × N |
 | Insert under existing section | `block create --parent <uid> --attach-to "[[Section]]"` | `block find` → `block create --parent` |
@@ -111,26 +113,35 @@ roam-cli block create --parent <page-uid> --attach-to "[[📽 Journaling]]" --fi
 
 ### Daily page operations
 
-Use `--to-daily-page` for one-shot writes to daily pages. Do NOT manually construct Roam daily page titles like "March 14th, 2026" — the CLI handles this internally.
+Use `--today` or `--to-daily-page` for one-shot writes to daily pages. Do NOT manually construct Roam daily page titles like "March 14th, 2026" — the CLI handles this internally. Pages are automatically upserted (created if missing, appended to if existing).
 
 ```bash
 # Save markdown to today's daily page
-cat note.md | roam-cli save --to-daily-page
+echo "- entry" | roam-cli save --today
 
 # Save to a specific date
 cat note.md | roam-cli save --to-daily-page 2026-03-14
+
+# Save under a section in today's daily page (find-or-create)
+echo "- journal entry" | roam-cli save --today --under '[[📽 Journaling]]'
+
+# Save under a section in a named page
+cat note.md | roam-cli save --title "Project Notes" --under '[[Tasks]]'
 
 # Search/find on a daily page — pass ISO date, CLI auto-resolves
 roam-cli search --page 2026-03-14 keyword
 roam-cli block find --page 2026-03-14 --text "[[📖 Daily Reading]]"
 ```
 
+`--under` finds an existing direct child block with matching text under the target page. If not found, creates it first. Then appends content under that block. This is the recommended way to write to daily page sections like `[[📽 Journaling]]`.
+
 ### Anti-patterns — do NOT do these
 
 - Do NOT call `block create` in a loop to build a tree. Use JSON input with children.
 - Do NOT fire multiple `block create` in parallel to the same parent. Use `batch run` or JSON tree input.
 - Do NOT do multi-step "find block → then create under it". Use `--attach-to`.
-- Do NOT do multi-step "find daily page UID → then write". Use `save --to-daily-page`.
+- Do NOT do multi-step "find daily page UID → then write". Use `save --today` or `save --to-daily-page`.
+- Do NOT do multi-step "find daily page → find section → write under it". Use `save --today --under '[[Section]]'`.
 - Do NOT manually construct "Month DDth, YYYY" date strings. Pass ISO dates (YYYY-MM-DD) to `--to-daily-page`, `--daily`, or `--page` — the CLI converts them.
 - Do NOT add `--stdin` when piping — it's automatic.
 
@@ -189,7 +200,7 @@ The CLI auto-resolves ISO dates (YYYY-MM-DD) to Roam daily page titles wherever 
 
 | Flag | Input | Resolved to |
 |---|---|---|
-| `save --to-daily-page` | `2026-03-14` | Creates/finds page "March 14th, 2026" |
+| `save --to-daily-page` / `--today` | `2026-03-14` / today | Creates/finds page "March 14th, 2026" |
 | `search --page` | `2026-03-14` | Searches in "March 14th, 2026" |
 | `block find --page` | `2026-03-14` | Finds block in "March 14th, 2026" |
 | `block find --daily` | `2026-03-14` | Finds by daily page UID (existing behavior) |
@@ -200,7 +211,8 @@ The CLI auto-resolves ISO dates (YYYY-MM-DD) to Roam daily page titles wherever 
 1. `roam-cli status` — verify credentials.
 2. Read: `get`, `search`, `search-pages`, `q`, `journal`, `block find`.
 3. Write (pick one, in order of preference):
-   - Daily page content → `save --to-daily-page`
+   - Daily page content → `save --today` or `save --to-daily-page`
+   - Daily page section → `save --today --under '[[Section]]'`
    - Long markdown → `save --title`
    - Nested blocks / attach to existing section → `block create` (with JSON + `--attach-to`)
    - Mixed operations → `batch run`

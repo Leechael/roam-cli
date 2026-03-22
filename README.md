@@ -72,7 +72,7 @@ roam-cli status --json --jq '.ok'
 - `get` — read page by title or block by uid
 - `search` — search blocks by terms
 - `q` — run raw datalog query
-- `save` — save markdown as a page (`--title`), daily page (`--to-daily-page`), or under a parent block (`--parent`)
+- `save` — save markdown as a page (`--title`), daily page (`--to-daily-page` / `--today`), or under a parent block (`--parent`); `--under` finds-or-creates a child block by text
 - `journal` — read daily journaling blocks
 - `help` — show help or categorized examples (`help read`, `help write`, `help workflow`, `help all`)
 
@@ -96,7 +96,7 @@ Commands that accept input (`save`, `block create`, `batch run`) read from stdin
 
 ISO dates (YYYY-MM-DD) are auto-resolved to Roam daily page titles wherever a page reference is expected:
 
-- `save --to-daily-page 2026-03-14` → saves to "March 14th, 2026"
+- `save --to-daily-page 2026-03-14` / `save --today` → saves to "March 14th, 2026" / today's daily page
 - `search --page 2026-03-14` → searches in "March 14th, 2026"
 - `block find --page 2026-03-14` → finds in "March 14th, 2026"
 
@@ -124,10 +124,16 @@ roam-cli q '[:find ?title :where [?e :node/title ?title]]' --json
 cat note.md | roam-cli save --title "New Page"
 
 # save to today's daily page
-cat note.md | roam-cli save --to-daily-page
+echo "- entry" | roam-cli save --today
 
 # save to a specific daily page
 cat note.md | roam-cli save --to-daily-page 2026-03-14
+
+# save under a section in today's daily page (find-or-create)
+echo "- journal entry" | roam-cli save --today --under '[[📽 Journaling]]'
+
+# save under a section in a named page
+cat note.md | roam-cli save --title "Project Notes" --under '[[Tasks]]'
 
 # save under an existing parent block
 roam-cli save --parent <uid> --file ./note.md
