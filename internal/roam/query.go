@@ -47,6 +47,30 @@ func toMap(v any) map[string]any {
 	return nil
 }
 
+// GetPageUIDByTitle returns the UID of a page with the given title, or empty string if not found.
+func (c *Client) GetPageUIDByTitle(title string) (string, error) {
+	escaped := escapeDatalogString(title)
+	query := fmt.Sprintf(`
+[:find ?uid
+ :where
+   [?e :node/title "%s"]
+   [?e :block/uid ?uid]]
+`, escaped)
+	result, err := c.Q(query, nil)
+	if err != nil {
+		return "", err
+	}
+	rows := toSlice(result)
+	if len(rows) == 0 {
+		return "", nil
+	}
+	first := toSlice(rows[0])
+	if len(first) == 0 {
+		return "", nil
+	}
+	return fmt.Sprintf("%v", first[0]), nil
+}
+
 func (c *Client) GetPageByTitle(title string) (map[string]any, error) {
 	escaped := escapeDatalogString(title)
 	query := fmt.Sprintf(`
@@ -341,7 +365,7 @@ func (c *Client) FindBlockUnderParent(text string, parentUID string) (string, er
 [:find ?uid
  :where
    [?parent :block/uid "%s"]
-   [?b :block/parents ?parent]
+   [?parent :block/children ?b]
    [?b :block/string "%s"]
    [?b :block/uid ?uid]]
 `, escapedParent, escaped)
