@@ -40,7 +40,8 @@ ci:
 	go vet ./...
 	go test ./... -count=1
 	go test -tags=bdd ./tests/bdd/... -count=1
-	go build -v $(CMD)
+	mkdir -p $(BIN_DIR)
+	go build -v -o $(BIN_PATH) $(CMD)
 
 build:
 	mkdir -p $(BIN_DIR)
