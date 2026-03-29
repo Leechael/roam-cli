@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/Leechael/roamresearch-skills/internal/client"
+	"github.com/Leechael/roam-cli/internal/client"
 )
 
 func newBlockCmd() *cobra.Command {

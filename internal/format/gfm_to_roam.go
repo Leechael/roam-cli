@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Leechael/roamresearch-skills/internal/client"
+	"github.com/Leechael/roam-cli/internal/client"
 )
 
 type parentFrame struct {

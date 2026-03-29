@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/Leechael/roamresearch-skills/internal/format"
+	"github.com/Leechael/roam-cli/internal/format"
 )
 
 func newJournalCmd() *cobra.Command {

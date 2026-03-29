@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/Leechael/roamresearch-skills/internal/client"
-	"github.com/Leechael/roamresearch-skills/internal/format"
+	"github.com/Leechael/roam-cli/internal/client"
+	"github.com/Leechael/roam-cli/internal/format"
 )
 
 func validateSaveTarget(title, parentUID, dailyPage string, today bool) error {

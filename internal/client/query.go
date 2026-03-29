@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Leechael/roamresearch-skills/internal/model"
+	"github.com/Leechael/roam-cli/internal/model"
 )
 
 func escapeDatalogString(s string) string {

@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/Leechael/roamresearch-skills/internal/format"
-	"github.com/Leechael/roamresearch-skills/internal/parser"
+	"github.com/Leechael/roam-cli/internal/format"
+	"github.com/Leechael/roam-cli/internal/parser"
 )
 
 func newGetCmd() *cobra.Command {

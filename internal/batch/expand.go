@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Leechael/roamresearch-skills/internal/client"
+	"github.com/Leechael/roam-cli/internal/client"
 )
 
 // BlockFinder resolves a block UID by text under a parent.

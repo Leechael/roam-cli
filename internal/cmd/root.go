@@ -6,9 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/Leechael/roamresearch-skills/internal/client"
-	"github.com/Leechael/roamresearch-skills/internal/config"
-	"github.com/Leechael/roamresearch-skills/internal/model"
+	"github.com/Leechael/roam-cli/internal/client"
+	"github.com/Leechael/roam-cli/internal/config"
+	"github.com/Leechael/roam-cli/internal/model"
 )
 
 type globalOptions struct {

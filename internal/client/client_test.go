@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Leechael/roamresearch-skills/internal/config"
-	"github.com/Leechael/roamresearch-skills/internal/model"
+	"github.com/Leechael/roam-cli/internal/config"
+	"github.com/Leechael/roam-cli/internal/model"
 )
 
 func testServer(handler http.HandlerFunc) (*httptest.Server, *Client) {

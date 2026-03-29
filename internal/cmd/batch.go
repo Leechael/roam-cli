@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	batchdsl "github.com/Leechael/roamresearch-skills/internal/batch"
+	batchdsl "github.com/Leechael/roam-cli/internal/batch"
 )
 
 func newBatchCmd() *cobra.Command {

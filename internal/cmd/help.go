@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	helpdocs "github.com/Leechael/roamresearch-skills/docs/help"
+	helpdocs "github.com/Leechael/roam-cli/docs/help"
 )
 
 type exampleCategory struct {

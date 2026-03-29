@@ -1,4 +1,4 @@
-module github.com/Leechael/roamresearch-skills
+module github.com/Leechael/roam-cli
 
 go 1.22
 

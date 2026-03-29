@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Leechael/roamresearch-skills/internal/cmd"
+	"github.com/Leechael/roam-cli/internal/cmd"
 )
 
 func main() {
