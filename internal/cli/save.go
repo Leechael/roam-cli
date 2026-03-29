@@ -169,7 +169,7 @@ func newSaveCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&title, "title", "", "Page title (required unless --parent, --to-daily-page, or --today is set)")
 	cmd.Flags().StringVar(&parentUID, "parent", "", "Target parent block UID")
-	cmd.Flags().StringVar(&dailyPage, "to-daily-page", "", "Save to daily page by date (e.g. 2026-03-14)")
+	cmd.Flags().StringVar(&dailyPage, "to-daily-page", "", "Save to daily page by date (YYYY-MM-DD, today, yesterday, tomorrow)")
 	cmd.Flags().BoolVar(&today, "today", false, "Save to today's daily page")
 	cmd.Flags().StringVar(&under, "under", "", "Find-or-create a child block with this text under the target page, then append content under it")
 	cmd.Flags().StringVar(&file, "file", "", "Markdown file path (default: stdin)")

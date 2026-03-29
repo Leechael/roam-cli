@@ -102,8 +102,18 @@ func maybeResolveDailyTitle(s string) string {
 }
 
 func parseDateFlexible(v string) (time.Time, error) {
-	if strings.TrimSpace(v) == "" {
+	v = strings.TrimSpace(v)
+	if v == "" {
 		return time.Now(), nil
+	}
+	now := time.Now()
+	switch strings.ToLower(v) {
+	case "today":
+		return now, nil
+	case "yesterday":
+		return now.AddDate(0, 0, -1), nil
+	case "tomorrow":
+		return now.AddDate(0, 0, 1), nil
 	}
 	layouts := []string{
 		time.RFC3339,
@@ -115,7 +125,7 @@ func parseDateFlexible(v string) (time.Time, error) {
 		"01/02/2006",
 	}
 	for _, layout := range layouts {
-		if t, err := time.Parse(layout, strings.TrimSpace(v)); err == nil {
+		if t, err := time.Parse(layout, v); err == nil {
 			return t, nil
 		}
 	}

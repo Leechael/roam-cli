@@ -27,9 +27,11 @@ func Execute() error {
 
 func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
-		Use:     "roam-cli",
-		Short:   "Roam Research CLI (Go)",
-		Version: Version,
+		Use:           "roam-cli",
+		Short:         "Roam Research CLI (Go)",
+		Version:       Version,
+		SilenceUsage:  true,
+		SilenceErrors: true,
 	}
 
 	root.PersistentFlags().StringVar(&opts.token, "token", "", "Roam API token (overrides ROAM_API_TOKEN)")

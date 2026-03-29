@@ -376,6 +376,7 @@ func newBlockGetCmd() *cobra.Command {
 func newBlockFindCmd() *cobra.Command {
 	var text string
 	var daily string
+	var today bool
 	var page string
 
 	cmd := &cobra.Command{
@@ -385,11 +386,17 @@ func newBlockFindCmd() *cobra.Command {
 			if text == "" {
 				return errMissingFlag("text")
 			}
+			if today && daily != "" {
+				return fmt.Errorf("--today and --daily cannot be used together")
+			}
+			if today {
+				daily = "today"
+			}
 			if daily != "" && page != "" {
-				return fmt.Errorf("--daily and --page cannot be used together")
+				return fmt.Errorf("--daily/--today and --page cannot be used together")
 			}
 			if daily == "" && page == "" {
-				return fmt.Errorf("one of --daily or --page is required")
+				return fmt.Errorf("one of --daily, --today, or --page is required")
 			}
 
 			client, err := mustClient()
@@ -420,8 +427,9 @@ func newBlockFindCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&text, "text", "", "Block text to match (required)")
-	cmd.Flags().StringVar(&daily, "daily", "", "Daily note date (mutually exclusive with --page)")
-	cmd.Flags().StringVar(&page, "page", "", "Page title (mutually exclusive with --daily)")
+	cmd.Flags().StringVar(&daily, "daily", "", "Daily note date (YYYY-MM-DD, today, yesterday, tomorrow)")
+	cmd.Flags().BoolVar(&today, "today", false, "Shorthand for --daily today")
+	cmd.Flags().StringVar(&page, "page", "", "Page title (mutually exclusive with --daily/--today)")
 	return cmd
 }
 

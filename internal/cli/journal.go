@@ -50,7 +50,7 @@ func newJournalCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&date, "date", "", "Date string, defaults to today")
+	cmd.Flags().StringVar(&date, "date", "", "Date (YYYY-MM-DD, today, yesterday, tomorrow); defaults to today")
 	cmd.Flags().StringVar(&topic, "topic", "", "Topic node override")
 	cmd.Flags().BoolVar(&asJSON, "json", false, "Output journal data as JSON")
 	cmd.Flags().BoolVar(&asPlain, "plain", false, "Output journal data as plain text")
