@@ -1,0 +1,39 @@
+Roam Research CLI (Go)
+
+Usage:
+  roam-cli [command]
+
+Available Commands:
+  batch        Low-level batch actions API
+  block        Low-level block APIs
+  completion   Generate the autocompletion script for the specified shell
+  get          Get page by title or block by uid
+  help         Help about any command, help topic, or example category
+  journal      Get journaling blocks from Daily Notes
+  q            Execute raw datalog query
+  save         Save markdown as a Roam page or under a parent block
+  search       Search blocks containing all terms
+  search-pages Multi-query search aggregated by page
+  status       Check roam-cli credential and API connectivity status
+
+Flags:
+      --base-url string   Roam API base URL (overrides ROAM_API_BASE_URL)
+      --graph string      Roam graph name (overrides ROAM_API_GRAPH)
+  -h, --help              help for roam-cli
+      --timeout int       Request timeout in seconds (overrides ROAM_TIMEOUT_SECONDS)
+      --token string      Roam API token (overrides ROAM_API_TOKEN)
+  -v, --version           version for roam-cli
+
+Use "roam-cli [command] --help" for more information about a command.
+
+HELP TOPICS
+  datalog        Roam Research exposes a Datomic-flavored Datalog query API with Clojure built-in functions.
+  exit-codes     Stable exit codes for scripting and automation.
+
+Use "roam-cli help <topic>" for more information about a topic.
+
+Example categories (roam-cli help <category>):
+  read         Read pages, blocks, search, query, and journal
+  write        Save markdown, create blocks, batch operations
+  workflow     Common multi-step patterns for efficient Roam operations
+  all          Show all categories

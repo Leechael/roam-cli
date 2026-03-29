@@ -1,4 +1,4 @@
-package cli
+package cmd
 
 import (
 	"fmt"
@@ -36,7 +36,7 @@ func newStatusCmd() *cobra.Command {
 				return nil
 			}
 
-			client, err := mustClient()
+			c, err := mustClient()
 			if err != nil {
 				msg := "Roam credentials are not configured. Set ROAM_API_TOKEN and ROAM_API_GRAPH, then try again."
 				payload := map[string]any{"ok": false, "message": msg, "error": err.Error()}
@@ -48,7 +48,7 @@ func newStatusCmd() *cobra.Command {
 				return fmt.Errorf("%s\n%s", msg, err)
 			}
 
-			_, err = client.Q(`[:find ?title :where [?e :node/title ?title]]`, nil)
+			_, err = c.Q(`[:find ?title :where [?e :node/title ?title]]`, nil)
 			if err != nil {
 				msg := "Roam API check failed. Verify token, graph name, and network connectivity."
 				payload := map[string]any{"ok": false, "message": msg, "error": err.Error()}

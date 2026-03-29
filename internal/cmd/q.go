@@ -1,4 +1,4 @@
-package cli
+package cmd
 
 import (
 	"fmt"
@@ -32,12 +32,12 @@ func newQCmd() *cobra.Command {
 				return err
 			}
 
-			client, err := mustClient()
+			c, err := mustClient()
 			if err != nil {
 				return err
 			}
 
-			result, err := client.Q(query, args)
+			result, err := c.Q(query, args)
 			if err != nil {
 				return err
 			}

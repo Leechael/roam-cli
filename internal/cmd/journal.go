@@ -1,4 +1,4 @@
-package cli
+package cmd
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"roam-cli/internal/format"
+	"github.com/Leechael/roam-cli/internal/format"
 )
 
 func newJournalCmd() *cobra.Command {
@@ -34,11 +34,11 @@ func newJournalCmd() *cobra.Command {
 				topic = os.Getenv("ROAM_TOPIC_NODE")
 			}
 
-			client, err := mustClient()
+			c, err := mustClient()
 			if err != nil {
 				return err
 			}
-			nodes, err := client.GetJournalingByDate(when, topic)
+			nodes, err := c.GetJournalingByDate(when, topic)
 			if err != nil {
 				return err
 			}
@@ -50,7 +50,7 @@ func newJournalCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&date, "date", "", "Date string, defaults to today")
+	cmd.Flags().StringVar(&date, "date", "", "Date (YYYY-MM-DD, today, yesterday, tomorrow); defaults to today")
 	cmd.Flags().StringVar(&topic, "topic", "", "Topic node override")
 	cmd.Flags().BoolVar(&asJSON, "json", false, "Output journal data as JSON")
 	cmd.Flags().BoolVar(&asPlain, "plain", false, "Output journal data as plain text")

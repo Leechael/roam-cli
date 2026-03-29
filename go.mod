@@ -1,4 +1,4 @@
-module roam-cli
+module github.com/Leechael/roam-cli
 
 go 1.22
 

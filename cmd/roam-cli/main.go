@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"os"
 
-	"roam-cli/internal/cli"
+	"github.com/Leechael/roam-cli/internal/cmd"
 )
 
 func main() {
-	if err := cli.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+	root := cmd.NewRootCmd()
+	if err := root.Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+		os.Exit(cmd.ExitCode(err))
 	}
 }

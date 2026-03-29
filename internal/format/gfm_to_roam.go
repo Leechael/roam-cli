@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"roam-cli/internal/roam"
+	"github.com/Leechael/roam-cli/internal/client"
 )
 
 type parentFrame struct {
@@ -42,7 +42,7 @@ func GFMToBatchActions(raw, pageUID string) []map[string]any {
 		}
 		text := strings.TrimSpace(strings.Join(*buf, "\n"))
 		if text != "" {
-			actions = append(actions, roam.CreateBlockAction(text, currentParent(), "", "last", true))
+			actions = append(actions, client.CreateBlockAction(text, currentParent(), "", "last", true))
 		}
 		*buf = nil
 	}
@@ -65,7 +65,7 @@ func GFMToBatchActions(raw, pageUID string) []map[string]any {
 				codeLines = append(codeLines, lines[i])
 			}
 			codeText := "```" + lang + "\n" + strings.Join(codeLines, "\n") + "\n```"
-			actions = append(actions, roam.CreateBlockAction(codeText, currentParent(), "", "last", true))
+			actions = append(actions, client.CreateBlockAction(codeText, currentParent(), "", "last", true))
 			continue
 		}
 
@@ -117,7 +117,7 @@ func GFMToBatchActions(raw, pageUID string) []map[string]any {
 			if len(parents) == 0 {
 				parents = []parentFrame{{level: 0, uid: pageUID}}
 			}
-			action := roam.CreateBlockAction(text, currentParent(), "", "last", true)
+			action := client.CreateBlockAction(text, currentParent(), "", "last", true)
 			action["block"].(map[string]any)["heading"] = level
 			actions = append(actions, action)
 			newUID := action["block"].(map[string]any)["uid"].(string)
@@ -141,7 +141,7 @@ func GFMToBatchActions(raw, pageUID string) []map[string]any {
 			if len(listStack) > 0 {
 				parentUID = listStack[len(listStack)-1].uid
 			}
-			action := roam.CreateBlockAction(text, parentUID, "", "last", true)
+			action := client.CreateBlockAction(text, parentUID, "", "last", true)
 			actions = append(actions, action)
 			newUID := action["block"].(map[string]any)["uid"].(string)
 			listStack = append(listStack, listFrame{indent: indent, uid: newUID})
@@ -151,7 +151,7 @@ func GFMToBatchActions(raw, pageUID string) []map[string]any {
 		if strings.HasPrefix(trimmed, "> ") {
 			flushParagraph(&paragraph)
 			resetList()
-			actions = append(actions, roam.CreateBlockAction(trimmed, currentParent(), "", "last", true))
+			actions = append(actions, client.CreateBlockAction(trimmed, currentParent(), "", "last", true))
 			continue
 		}
 
@@ -191,7 +191,7 @@ func tableToActions(lines []string, parentUID string) []map[string]any {
 		return nil
 	}
 	actions := []map[string]any{}
-	table := roam.CreateBlockAction("{{[[table]]}}", parentUID, "", "last", false)
+	table := client.CreateBlockAction("{{[[table]]}}", parentUID, "", "last", false)
 	actions = append(actions, table)
 	tableUID := table["block"].(map[string]any)["uid"].(string)
 
@@ -207,7 +207,7 @@ func tableToActions(lines []string, parentUID string) []map[string]any {
 		}
 		parent := tableUID
 		for _, cell := range cells {
-			cellAction := roam.CreateBlockAction(cell, parent, "", "last", true)
+			cellAction := client.CreateBlockAction(cell, parent, "", "last", true)
 			actions = append(actions, cellAction)
 			parent = cellAction["block"].(map[string]any)["uid"].(string)
 		}

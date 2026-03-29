@@ -1,4 +1,4 @@
-package roam
+package client
 
 import (
 	"bytes"
@@ -9,7 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"roam-cli/internal/config"
+	"github.com/Leechael/roam-cli/internal/config"
+	"github.com/Leechael/roam-cli/internal/model"
 )
 
 const (
@@ -36,15 +37,6 @@ type Client struct {
 	httpClient *http.Client
 	baseGraph  string
 	token      string
-}
-
-type APIError struct {
-	Status int
-	Body   string
-}
-
-func (e *APIError) Error() string {
-	return fmt.Sprintf("roam api error: status=%d body=%s", e.Status, e.Body)
 }
 
 func NewClient(cfg *config.Config) *Client {
@@ -142,7 +134,7 @@ func (c *Client) postJSON(path string, payload map[string]any) (map[string]any, 
 		}
 
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			return nil, &APIError{Status: resp.StatusCode, Body: string(respBytes)}
+			return nil, &model.APIError{Status: resp.StatusCode, Body: string(respBytes)}
 		}
 		if len(respBytes) == 0 {
 			return map[string]any{"ok": true}, nil

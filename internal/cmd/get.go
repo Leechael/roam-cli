@@ -1,12 +1,12 @@
-package cli
+package cmd
 
 import (
 	"fmt"
 
 	"github.com/spf13/cobra"
 
-	"roam-cli/internal/format"
-	"roam-cli/internal/parser"
+	"github.com/Leechael/roam-cli/internal/format"
+	"github.com/Leechael/roam-cli/internal/parser"
 )
 
 func newGetCmd() *cobra.Command {
@@ -23,7 +23,7 @@ func newGetCmd() *cobra.Command {
 			}
 
 			identifier := args[0]
-			client, err := mustClient()
+			c, err := mustClient()
 			if err != nil {
 				return err
 			}
@@ -31,13 +31,13 @@ func newGetCmd() *cobra.Command {
 			var result map[string]any
 			isPage := false
 			if uid, ok := parser.ParseUID(identifier); ok {
-				result, err = client.GetBlockByUID(uid)
+				result, err = c.GetBlockByUID(uid)
 				if err != nil {
 					return err
 				}
 			}
 			if result == nil {
-				result, err = client.GetPageByTitle(identifier)
+				result, err = c.GetPageByTitle(identifier)
 				if err != nil {
 					return err
 				}
