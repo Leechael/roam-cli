@@ -1,4 +1,4 @@
-package cli
+package cmd
 
 import (
 	"fmt"
@@ -23,12 +23,12 @@ func newSearchCmd() *cobra.Command {
 				return fmt.Errorf("--json and --plain cannot be used together")
 			}
 
-			client, err := mustClient()
+			c, err := mustClient()
 			if err != nil {
 				return err
 			}
 
-			results, err := client.SearchBlocks(args, limit, !ignoreCase, maybeResolveDailyTitle(page))
+			results, err := c.SearchBlocks(args, limit, !ignoreCase, maybeResolveDailyTitle(page))
 			if err != nil {
 				return err
 			}

@@ -1,4 +1,4 @@
-package cli
+package cmd
 
 import (
 	"fmt"
@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"roam-cli/internal/format"
-	"roam-cli/internal/roam"
+	"github.com/Leechael/roamresearch-skills/internal/client"
+	"github.com/Leechael/roamresearch-skills/internal/format"
 )
 
 func validateSaveTarget(title, parentUID, dailyPage string, today bool) error {
@@ -74,7 +74,7 @@ func newSaveCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("invalid date for --to-daily-page: %w", err)
 				}
-				title = roam.DailyTitle(when)
+				title = client.DailyTitle(when)
 			}
 
 			// --under requires a page target, not --parent
@@ -95,7 +95,7 @@ func newSaveCmd() *cobra.Command {
 			}
 
 			// Need client early for page/block lookups
-			client, err := mustClient()
+			c, err := mustClient()
 			if err != nil {
 				return err
 			}
@@ -108,7 +108,7 @@ func newSaveCmd() *cobra.Command {
 				mode = "page"
 
 				// Upsert: check if page already exists
-				existingUID, err := client.GetPageUIDByTitle(title)
+				existingUID, err := c.GetPageUIDByTitle(title)
 				if err != nil {
 					return fmt.Errorf("failed to check existing page: %w", err)
 				}
@@ -118,31 +118,31 @@ func newSaveCmd() *cobra.Command {
 				} else {
 					// Page does not exist — create it
 					if pageUID == "" {
-						pageUID = roam.NewUID()
+						pageUID = client.NewUID()
 					}
-					actions = append(actions, roam.CreatePageAction(title, pageUID))
+					actions = append(actions, client.CreatePageAction(title, pageUID))
 				}
 				target = pageUID
 			}
 
 			// --under: find-or-create a direct child block under the page
 			if strings.TrimSpace(under) != "" {
-				foundUID, err := client.FindBlockUnderParent(under, target)
+				foundUID, err := c.FindBlockUnderParent(under, target)
 				if err != nil {
 					return fmt.Errorf("--under lookup failed: %w", err)
 				}
 				if foundUID != "" {
 					target = foundUID
 				} else {
-					newUID := roam.NewUID()
-					actions = append(actions, roam.CreateBlockAction(under, target, newUID, "last", true))
+					newUID := client.NewUID()
+					actions = append(actions, client.CreateBlockAction(under, target, newUID, "last", true))
 					target = newUID
 				}
 			}
 
 			actions = append(actions, format.GFMToBatchActions(raw, target)...)
 
-			resp, err := client.BatchActions(actions)
+			resp, err := c.BatchActions(actions)
 			if err != nil {
 				return err
 			}

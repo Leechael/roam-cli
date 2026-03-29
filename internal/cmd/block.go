@@ -1,4 +1,4 @@
-package cli
+package cmd
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"roam-cli/internal/roam"
+	"github.com/Leechael/roamresearch-skills/internal/client"
 )
 
 func newBlockCmd() *cobra.Command {
@@ -57,7 +57,7 @@ JSON input accepts a single object or array; each node: text/string, children, u
 				return errMissingFlag("parent")
 			}
 
-			client, err := mustClient()
+			c, err := mustClient()
 			if err != nil {
 				return err
 			}
@@ -65,7 +65,7 @@ JSON input accepts a single object or array; each node: text/string, children, u
 			// Resolve attach-to: find or create the intermediate parent
 			effectiveParent := parentUID
 			if attachTo != "" {
-				foundUID, err := client.FindBlockUnderParent(attachTo, parentUID)
+				foundUID, err := c.FindBlockUnderParent(attachTo, parentUID)
 				if err != nil {
 					return fmt.Errorf("attach-to lookup failed: %w", err)
 				}
@@ -73,9 +73,9 @@ JSON input accepts a single object or array; each node: text/string, children, u
 					effectiveParent = foundUID
 				} else {
 					// Create the attach-to block
-					newUID := roam.NewUID()
-					action := roam.CreateBlockAction(attachTo, parentUID, newUID, order, true)
-					if _, err := client.Write(action); err != nil {
+					newUID := client.NewUID()
+					action := client.CreateBlockAction(attachTo, parentUID, newUID, order, true)
+					if _, err := c.Write(action); err != nil {
 						return fmt.Errorf("failed to create attach-to block: %w", err)
 					}
 					effectiveParent = newUID
@@ -106,7 +106,7 @@ JSON input accepts a single object or array; each node: text/string, children, u
 					return fmt.Errorf("no blocks to create")
 				}
 
-				resp, err := client.BatchActions(actions)
+				resp, err := c.BatchActions(actions)
 				if err != nil {
 					return err
 				}
@@ -132,7 +132,7 @@ JSON input accepts a single object or array; each node: text/string, children, u
 					if len(actions) == 0 {
 						return fmt.Errorf("no blocks to create")
 					}
-					resp, err := client.BatchActions(actions)
+					resp, err := c.BatchActions(actions)
 					if err != nil {
 						return err
 					}
@@ -146,8 +146,8 @@ JSON input accepts a single object or array; each node: text/string, children, u
 			}
 
 			// Single block mode
-			action := roam.CreateBlockAction(text, effectiveParent, uid, order, open)
-			resp, err := client.Write(action)
+			action := client.CreateBlockAction(text, effectiveParent, uid, order, open)
+			resp, err := c.Write(action)
 			if err != nil {
 				return err
 			}
@@ -185,7 +185,7 @@ func walkTree(actions *[]map[string]any, parent string, children []treeNode, pat
 		}
 		uid := strings.TrimSpace(node.UID)
 		if uid == "" {
-			uid = roam.NewUID()
+			uid = client.NewUID()
 		}
 		order := strings.TrimSpace(node.Order)
 		if order == "" {
@@ -195,7 +195,7 @@ func walkTree(actions *[]map[string]any, parent string, children []treeNode, pat
 		if node.Open != nil {
 			open = *node.Open
 		}
-		*actions = append(*actions, roam.CreateBlockAction(text, parent, uid, order, open))
+		*actions = append(*actions, client.CreateBlockAction(text, parent, uid, order, open))
 		if len(node.Children) > 0 {
 			if err := walkTree(actions, uid, node.Children, nodePath+".children"); err != nil {
 				return err
@@ -223,11 +223,11 @@ func newBlockUpdateCmd() *cobra.Command {
 			if text == "" {
 				return errMissingFlag("text")
 			}
-			client, err := mustClient()
+			c, err := mustClient()
 			if err != nil {
 				return err
 			}
-			resp, err := client.Write(roam.UpdateBlockAction(uid, text))
+			resp, err := c.Write(client.UpdateBlockAction(uid, text))
 			if err != nil {
 				return err
 			}
@@ -262,11 +262,11 @@ func newBlockDeleteCmd() *cobra.Command {
 			if uid == "" {
 				return errMissingFlag("uid")
 			}
-			client, err := mustClient()
+			c, err := mustClient()
 			if err != nil {
 				return err
 			}
-			resp, err := client.Write(roam.DeleteBlockAction(uid))
+			resp, err := c.Write(client.DeleteBlockAction(uid))
 			if err != nil {
 				return err
 			}
@@ -304,12 +304,12 @@ func newBlockMoveCmd() *cobra.Command {
 			if strings.TrimSpace(parentUID) == "" {
 				return errMissingFlag("parent")
 			}
-			client, err := mustClient()
+			c, err := mustClient()
 			if err != nil {
 				return err
 			}
-			action := roam.MoveBlockAction(uid, parentUID, order)
-			resp, err := client.Write(action)
+			action := client.MoveBlockAction(uid, parentUID, order)
+			resp, err := c.Write(action)
 			if err != nil {
 				return err
 			}
@@ -344,7 +344,7 @@ func newBlockGetCmd() *cobra.Command {
 			if uid == "" {
 				return errMissingFlag("uid")
 			}
-			client, err := mustClient()
+			c, err := mustClient()
 			if err != nil {
 				return err
 			}
@@ -355,7 +355,7 @@ func newBlockGetCmd() *cobra.Command {
                 ])
  :where [?e :block/uid "%s"]]
 `, uid)
-			result, err := client.Q(query, nil)
+			result, err := c.Q(query, nil)
 			if err != nil {
 				return err
 			}
@@ -399,7 +399,7 @@ func newBlockFindCmd() *cobra.Command {
 				return fmt.Errorf("one of --daily, --today, or --page is required")
 			}
 
-			client, err := mustClient()
+			c, err := mustClient()
 			if err != nil {
 				return err
 			}
@@ -409,7 +409,7 @@ func newBlockFindCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
-				uid, err := client.FindBlockUID(text, "", &when)
+				uid, err := c.FindBlockUID(text, "", &when)
 				if err != nil {
 					return err
 				}
@@ -417,7 +417,7 @@ func newBlockFindCmd() *cobra.Command {
 				return nil
 			}
 
-			uid, err := client.FindBlockUID(text, maybeResolveDailyTitle(page), nil)
+			uid, err := c.FindBlockUID(text, maybeResolveDailyTitle(page), nil)
 			if err != nil {
 				return err
 			}

@@ -1,27 +1,13 @@
-package roam
+package client
 
 import (
 	"fmt"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/Leechael/roamresearch-skills/internal/model"
 )
-
-type SearchResult struct {
-	UID       string `json:"uid"`
-	Text      string `json:"text"`
-	PageTitle string `json:"page_title"`
-	PageUID   string `json:"page_uid,omitempty"`
-}
-
-type PageSearchResult struct {
-	PageTitle      string   `json:"page_title"`
-	PageUID        string   `json:"page_uid"`
-	SectionTitle   string   `json:"section_title,omitempty"`
-	SectionUID     string   `json:"section_uid,omitempty"`
-	HitCount       int      `json:"hit_count"`
-	QueriesMatched []string `json:"queries_matched"`
-}
 
 func escapeDatalogString(s string) string {
 	return strings.ReplaceAll(s, `"`, `\"`)
@@ -118,17 +104,10 @@ func (c *Client) GetBlockByUID(uid string) (map[string]any, error) {
 	return toMap(first[0]), nil
 }
 
-// EstimateResult holds block and page counts for a single query.
-type EstimateResult struct {
-	Query      string `json:"query"`
-	BlockCount int    `json:"block_count"`
-	PageCount  int    `json:"page_count"`
-}
-
 // EstimateSearch returns block and page counts for each query without
 // pulling full results. Uses Datalog count aggregation for efficiency.
-func (c *Client) EstimateSearch(queries []string, caseSensitive bool, pageTitle string) ([]EstimateResult, []string, error) {
-	var out []EstimateResult
+func (c *Client) EstimateSearch(queries []string, caseSensitive bool, pageTitle string) ([]model.EstimateResult, []string, error) {
+	var out []model.EstimateResult
 	var failed []string
 
 	for i, q := range queries {
@@ -193,7 +172,7 @@ func (c *Client) EstimateSearch(queries []string, caseSensitive bool, pageTitle 
 			}
 		}
 
-		out = append(out, EstimateResult{
+		out = append(out, model.EstimateResult{
 			Query:      q,
 			BlockCount: blocks,
 			PageCount:  pages,
@@ -203,9 +182,9 @@ func (c *Client) EstimateSearch(queries []string, caseSensitive bool, pageTitle 
 	return out, failed, nil
 }
 
-func (c *Client) SearchBlocks(terms []string, limit int, caseSensitive bool, pageTitle string) ([]SearchResult, error) {
+func (c *Client) SearchBlocks(terms []string, limit int, caseSensitive bool, pageTitle string) ([]model.SearchResult, error) {
 	if len(terms) == 0 {
-		return []SearchResult{}, nil
+		return []model.SearchResult{}, nil
 	}
 	conditions := make([]string, 0, len(terms))
 	for _, term := range terms {
@@ -250,14 +229,14 @@ func (c *Client) SearchBlocks(terms []string, limit int, caseSensitive bool, pag
 	}
 
 	rows := toSlice(result)
-	out := make([]SearchResult, 0, len(rows))
+	out := make([]model.SearchResult, 0, len(rows))
 	for _, r := range rows {
 		cols := toSlice(r)
 		if pageTitle != "" {
 			if len(cols) < 3 {
 				continue
 			}
-			out = append(out, SearchResult{
+			out = append(out, model.SearchResult{
 				UID:       fmt.Sprintf("%v", cols[0]),
 				Text:      fmt.Sprintf("%v", cols[1]),
 				PageTitle: pageTitle,
@@ -267,7 +246,7 @@ func (c *Client) SearchBlocks(terms []string, limit int, caseSensitive bool, pag
 			if len(cols) < 4 {
 				continue
 			}
-			out = append(out, SearchResult{
+			out = append(out, model.SearchResult{
 				UID:       fmt.Sprintf("%v", cols[0]),
 				Text:      fmt.Sprintf("%v", cols[1]),
 				PageTitle: fmt.Sprintf("%v", cols[2]),
@@ -294,7 +273,7 @@ func (c *Client) SearchBlocks(terms []string, limit int, caseSensitive bool, pag
 	return out[:limit], nil
 }
 
-func relevance(item SearchResult, terms []string, caseSensitive bool) (priority int, text string, page string) {
+func relevance(item model.SearchResult, terms []string, caseSensitive bool) (priority int, text string, page string) {
 	text = item.Text
 	page = item.PageTitle
 	for _, term := range terms {
@@ -529,9 +508,9 @@ func (c *Client) getDailyAncestorMap(pageUID string, depth int, topic string) (m
 // and returns results aggregated by page. For daily pages, results are
 // drilled down to the level specified by dailyDepth. If dailyTopic is
 // non-empty, filters daily page sections at level 1.
-func (c *Client) SearchPages(queries []string, caseSensitive bool, pageTitle string, dailyTopic string, dailyDepth int) ([]PageSearchResult, []string, error) {
+func (c *Client) SearchPages(queries []string, caseSensitive bool, pageTitle string, dailyTopic string, dailyDepth int) ([]model.PageSearchResult, []string, error) {
 	if len(queries) == 0 {
-		return []PageSearchResult{}, nil, nil
+		return []model.PageSearchResult{}, nil, nil
 	}
 
 	// Phase 1: multi-query recall, collect all matching blocks
@@ -654,14 +633,14 @@ func (c *Client) SearchPages(queries []string, caseSensitive bool, pageTitle str
 	}
 
 	// Phase 3: build output
-	out := make([]PageSearchResult, 0, len(agg))
+	out := make([]model.PageSearchResult, 0, len(agg))
 	for key, val := range agg {
 		matched := make([]string, 0, len(val.queries))
 		for q := range val.queries {
 			matched = append(matched, q)
 		}
 		sort.Strings(matched)
-		out = append(out, PageSearchResult{
+		out = append(out, model.PageSearchResult{
 			PageTitle:      key.pageTitle,
 			PageUID:        key.pageUID,
 			SectionTitle:   key.sectionTitle,

@@ -1,12 +1,14 @@
-package cli
+package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
 
-	"roam-cli/internal/config"
-	"roam-cli/internal/roam"
+	"github.com/Leechael/roamresearch-skills/internal/client"
+	"github.com/Leechael/roamresearch-skills/internal/config"
+	"github.com/Leechael/roamresearch-skills/internal/model"
 )
 
 type globalOptions struct {
@@ -21,8 +23,31 @@ var opts globalOptions
 // Version is set at build time via -ldflags.
 var Version = "dev"
 
-func Execute() error {
-	return newRootCmd().Execute()
+// NewRootCmd creates the root cobra command.
+func NewRootCmd() *cobra.Command {
+	return newRootCmd()
+}
+
+// ExitCode maps an error to a stable exit code.
+//
+//	0 = success
+//	1 = general error
+//	2 = auth failure (401/403)
+//	3 = not found (404)
+func ExitCode(err error) int {
+	if err == nil {
+		return 0
+	}
+	var apiErr *model.APIError
+	if errors.As(err, &apiErr) {
+		switch apiErr.Status {
+		case 401, 403:
+			return 2
+		case 404:
+			return 3
+		}
+	}
+	return 1
 }
 
 func newRootCmd() *cobra.Command {
@@ -54,12 +79,12 @@ func newRootCmd() *cobra.Command {
 	return root
 }
 
-func mustClient() (*roam.Client, error) {
+func mustClient() (*client.Client, error) {
 	cfg, err := config.New(opts.token, opts.graph, opts.baseURL, opts.timeout)
 	if err != nil {
 		return nil, err
 	}
-	return roam.NewClient(cfg), nil
+	return client.NewClient(cfg), nil
 }
 
 func errMissingFlag(name string) error {

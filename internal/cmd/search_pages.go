@@ -1,4 +1,4 @@
-package cli
+package cmd
 
 import (
 	"fmt"
@@ -25,13 +25,13 @@ Each positional argument is an independent query. Results are deduplicated,
 aggregated by page, and sorted by number of queries matched then hit count.`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client, err := mustClient()
+			c, err := mustClient()
 			if err != nil {
 				return err
 			}
 
 			if estimate {
-				estimates, estFailed, err := client.EstimateSearch(args, !ignoreCase, maybeResolveDailyTitle(page))
+				estimates, estFailed, err := c.EstimateSearch(args, !ignoreCase, maybeResolveDailyTitle(page))
 				if err != nil {
 					return err
 				}
@@ -54,7 +54,7 @@ aggregated by page, and sorted by number of queries matched then hit count.`,
 				return nil
 			}
 
-			results, failed, err := client.SearchPages(args, !ignoreCase, maybeResolveDailyTitle(page), dailyTopic, dailyDepth)
+			results, failed, err := c.SearchPages(args, !ignoreCase, maybeResolveDailyTitle(page), dailyTopic, dailyDepth)
 			if err != nil {
 				return err
 			}

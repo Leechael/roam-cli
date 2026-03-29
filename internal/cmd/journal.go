@@ -1,4 +1,4 @@
-package cli
+package cmd
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"roam-cli/internal/format"
+	"github.com/Leechael/roamresearch-skills/internal/format"
 )
 
 func newJournalCmd() *cobra.Command {
@@ -34,11 +34,11 @@ func newJournalCmd() *cobra.Command {
 				topic = os.Getenv("ROAM_TOPIC_NODE")
 			}
 
-			client, err := mustClient()
+			c, err := mustClient()
 			if err != nil {
 				return err
 			}
-			nodes, err := client.GetJournalingByDate(when, topic)
+			nodes, err := c.GetJournalingByDate(when, topic)
 			if err != nil {
 				return err
 			}

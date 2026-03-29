@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"roam-cli/internal/roam"
+	"github.com/Leechael/roamresearch-skills/internal/client"
 )
 
 // BlockFinder resolves a block UID by text under a parent.
@@ -84,9 +84,9 @@ func expandCreateWithChildren(action map[string]any, path string, finder BlockFi
 			parentUID = foundUID
 		} else {
 			// Create the attach-to block, then use it as parent
-			newUID := roam.NewUID()
+			newUID := client.NewUID()
 			var expanded []map[string]any
-			expanded = append(expanded, roam.CreateBlockAction(attachTo, parentUID, newUID, rootOrder, true))
+			expanded = append(expanded, client.CreateBlockAction(attachTo, parentUID, newUID, rootOrder, true))
 			parentUID = newUID
 			// Children go under the newly created attach-to block
 			block, ok := action["block"].(map[string]any)
@@ -125,7 +125,7 @@ func expandCreateWithChildren(action map[string]any, path string, finder BlockFi
 func appendNodeActions(actions *[]map[string]any, parentUID string, node createNode) {
 	uid := strings.TrimSpace(node.UID)
 	if uid == "" {
-		uid = roam.NewUID()
+		uid = client.NewUID()
 	}
 	order := strings.TrimSpace(node.Order)
 	if order == "" {
@@ -135,7 +135,7 @@ func appendNodeActions(actions *[]map[string]any, parentUID string, node createN
 	if node.Open != nil {
 		open = *node.Open
 	}
-	*actions = append(*actions, roam.CreateBlockAction(node.Text, parentUID, uid, order, open))
+	*actions = append(*actions, client.CreateBlockAction(node.Text, parentUID, uid, order, open))
 	for _, child := range node.Children {
 		appendNodeActions(actions, uid, child)
 	}

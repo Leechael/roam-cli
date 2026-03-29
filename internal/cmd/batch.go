@@ -1,4 +1,4 @@
-package cli
+package cmd
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	batchdsl "roam-cli/internal/batch"
+	batchdsl "github.com/Leechael/roamresearch-skills/internal/batch"
 )
 
 func newBatchCmd() *cobra.Command {
@@ -44,17 +44,17 @@ func newBatchCmd() *cobra.Command {
 				return err
 			}
 
-			client, err := mustClient()
+			c, err := mustClient()
 			if err != nil {
 				return err
 			}
 
-			expanded, err := batchdsl.ExpandActions(actions, client)
+			expanded, err := batchdsl.ExpandActions(actions, c)
 			if err != nil {
 				return err
 			}
 
-			resp, err := client.BatchActions(expanded)
+			resp, err := c.BatchActions(expanded)
 			if err != nil {
 				return err
 			}

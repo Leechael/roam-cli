@@ -1,10 +1,14 @@
-package cli
+package cmd
 
 import (
 	"fmt"
+	"io"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
+
+	helpdocs "github.com/Leechael/roamresearch-skills/docs/help"
 )
 
 type exampleCategory struct {
@@ -142,78 +146,152 @@ var categories = []exampleCategory{
 	},
 }
 
-func printCategoryFooter() {
-	fmt.Println()
-	fmt.Println("Example categories (roam-cli help <category>):")
-	for _, cat := range categories {
-		fmt.Printf("  %-12s %s\n", cat.Name, cat.Desc)
-	}
-	fmt.Printf("  %-12s %s\n", "all", "Show all categories")
+type helpTopic struct {
+	Name string
+	Desc string
 }
 
-// installHelpCmd replaces cobra's default help command with one that also
-// understands example categories: roam-cli help all / read / write / workflow.
-// It also overrides the root --help flag output to include the category footer.
+func listTopics() []helpTopic {
+	entries, err := helpdocs.Topics.ReadDir("topics")
+	if err != nil {
+		return nil
+	}
+	var topics []helpTopic
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := strings.TrimSuffix(e.Name(), filepath.Ext(e.Name()))
+		desc := topicDescription(e.Name())
+		topics = append(topics, helpTopic{Name: name, Desc: desc})
+	}
+	return topics
+}
+
+func topicDescription(filename string) string {
+	data, err := helpdocs.Topics.ReadFile("topics/" + filename)
+	if err != nil {
+		return ""
+	}
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		return line
+	}
+	return ""
+}
+
+func readTopic(name string) (string, error) {
+	data, err := helpdocs.Topics.ReadFile("topics/" + name + ".md")
+	if err != nil {
+		return "", fmt.Errorf("unknown help topic %q", name)
+	}
+	return string(data), nil
+}
+
+func fprintHelpTopicsBlock(w io.Writer) {
+	topics := listTopics()
+	if len(topics) == 0 {
+		return
+	}
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "HELP TOPICS")
+	for _, t := range topics {
+		fmt.Fprintf(w, "  %-14s %s\n", t.Name, t.Desc)
+	}
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Use \"roam-cli help <topic>\" for more information about a topic.")
+}
+
+func fprintCategoryFooter(w io.Writer) {
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Example categories (roam-cli help <category>):")
+	for _, cat := range categories {
+		fmt.Fprintf(w, "  %-12s %s\n", cat.Name, cat.Desc)
+	}
+	fmt.Fprintf(w, "  %-12s %s\n", "all", "Show all categories")
+}
+
 func installHelpCmd(root *cobra.Command) {
 	defaultHelp := root.HelpFunc()
 
-	// Override --help flag on root so it also shows category footer
 	root.SetHelpFunc(func(cmd *cobra.Command, args []string) {
 		defaultHelp(cmd, args)
 		if cmd == root {
-			printCategoryFooter()
+			w := cmd.OutOrStdout()
+			fprintHelpTopicsBlock(w)
+			fprintCategoryFooter(w)
 		}
 	})
 
 	helpCmd := &cobra.Command{
-		Use:   "help [command | category]",
-		Short: "Help about any command, or show categorized examples (all/read/write/workflow)",
+		Use:   "help [command | topic | category]",
+		Short: "Help about any command, help topic, or example category",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			w := cmd.OutOrStdout()
 			if len(args) == 0 {
 				defaultHelp(root, args)
-				printCategoryFooter()
+				fprintHelpTopicsBlock(w)
+				fprintCategoryFooter(w)
 				return nil
 			}
 
 			name := strings.ToLower(args[0])
 
-			// Check categories first
+			// Check help topics first
+			content, err := readTopic(name)
+			if err == nil {
+				fmt.Fprint(w, content)
+				return nil
+			}
+
+			// Check categories
 			if name == "all" {
-				return showAll()
+				return fprintAll(w)
 			}
 			for _, cat := range categories {
 				if cat.Name == name {
-					return showCategory(cat)
+					return fprintCategory(w, cat)
 				}
 			}
 
 			// Fall back to cobra subcommand help
-			sub, _, err := root.Find(args)
-			if err == nil && sub != root {
+			sub, _, findErr := root.Find(args)
+			if findErr == nil && sub != root {
 				return sub.Help()
 			}
 
-			return fmt.Errorf("unknown command or category %q\nRun 'roam-cli help' for usage", name)
+			var available []string
+			for _, t := range listTopics() {
+				available = append(available, t.Name)
+			}
+			for _, cat := range categories {
+				available = append(available, cat.Name)
+			}
+			return fmt.Errorf("unknown help topic %q\nAvailable: %s", name, strings.Join(available, ", "))
 		},
 	}
 
 	root.SetHelpCommand(helpCmd)
 }
 
-func showCategory(cat exampleCategory) error {
-	fmt.Printf("=== %s — %s ===\n\n", cat.Name, cat.Desc)
-	fmt.Println(cat.Content)
-	fmt.Println()
+func fprintCategory(w io.Writer, cat exampleCategory) error {
+	fmt.Fprintf(w, "=== %s — %s ===\n\n", cat.Name, cat.Desc)
+	fmt.Fprintln(w, cat.Content)
+	fmt.Fprintln(w)
 	return nil
 }
 
-func showAll() error {
+func fprintAll(w io.Writer) error {
 	for i, cat := range categories {
-		if err := showCategory(cat); err != nil {
+		if err := fprintCategory(w, cat); err != nil {
 			return err
 		}
 		if i < len(categories)-1 {
-			fmt.Println()
+			fmt.Fprintln(w)
 		}
 	}
 	return nil

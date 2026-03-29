@@ -1,4 +1,4 @@
-package cli
+package cmd
 
 import (
 	"bufio"
@@ -11,7 +11,7 @@ import (
 
 	"github.com/itchyny/gojq"
 
-	"roam-cli/internal/roam"
+	"github.com/Leechael/roamresearch-skills/internal/client"
 )
 
 func prettyPrint(v any) error {
@@ -98,7 +98,7 @@ func maybeResolveDailyTitle(s string) string {
 	if err != nil || strings.TrimSpace(s) == "" {
 		return s
 	}
-	return roam.DailyTitle(t)
+	return client.DailyTitle(t)
 }
 
 func parseDateFlexible(v string) (time.Time, error) {
