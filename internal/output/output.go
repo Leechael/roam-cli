@@ -41,8 +41,7 @@ func (f *Formatter) IsPlain() bool { return f.plain }
 
 // Print writes data to w in the appropriate format.
 // JSON mode: pretty-printed JSON (with optional jq filtering).
-// Plain mode: caller handles plain output directly.
-// Default: caller handles human-readable output directly.
+// Plain and default modes return nil — the caller handles output directly.
 func (f *Formatter) Print(w io.Writer, data any) error {
 	if f.jqExpr != "" {
 		filtered, err := applyJQ(data, f.jqExpr)
@@ -54,7 +53,7 @@ func (f *Formatter) Print(w io.Writer, data any) error {
 	if f.json {
 		return printJSON(w, data)
 	}
-	return printJSON(w, data)
+	return nil
 }
 
 // PrintJSON writes data as pretty-printed JSON to w.

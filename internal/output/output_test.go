@@ -67,6 +67,30 @@ func TestPrintJQ(t *testing.T) {
 	}
 }
 
+func TestPrintDefault_NoOutput(t *testing.T) {
+	f := New(false, false, "")
+	var buf bytes.Buffer
+	err := f.Print(&buf, map[string]any{"key": "value"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if buf.Len() != 0 {
+		t.Fatalf("expected no output in default mode, got: %s", buf.String())
+	}
+}
+
+func TestPrintPlain_NoOutput(t *testing.T) {
+	f := New(false, true, "")
+	var buf bytes.Buffer
+	err := f.Print(&buf, map[string]any{"key": "value"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if buf.Len() != 0 {
+		t.Fatalf("expected no output in plain mode, got: %s", buf.String())
+	}
+}
+
 func TestIsJSON(t *testing.T) {
 	f := New(true, false, "")
 	if !f.IsJSON() {
