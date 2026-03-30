@@ -65,6 +65,12 @@ func newRootCmd() *cobra.Command {
 	root.PersistentFlags().StringVar(&opts.baseURL, "base-url", "", "Roam API base URL (overrides ROAM_API_BASE_URL)")
 	root.PersistentFlags().IntVar(&opts.timeout, "timeout", 0, "Request timeout in seconds (overrides ROAM_TIMEOUT_SECONDS)")
 
+	// Hide connection flags from root --help; documented in "roam-cli help configuration"
+	root.PersistentFlags().MarkHidden("token")
+	root.PersistentFlags().MarkHidden("graph")
+	root.PersistentFlags().MarkHidden("base-url")
+	root.PersistentFlags().MarkHidden("timeout")
+
 	root.AddGroup(
 		&cobra.Group{ID: "daily", Title: "Daily Use:"},
 		&cobra.Group{ID: "lowlevel", Title: "Low-level API:"},
