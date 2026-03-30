@@ -20,65 +20,75 @@ type exampleCategory struct {
 var categories = []exampleCategory{
 	{
 		Name: "read",
-		Desc: "Read pages, blocks, search, query, and journal",
-		Content: `## Read page or block
+		Desc: "Read pages, blocks, daily notes, and search",
+		Content: `## Read today's daily page
+
+  roam-cli get --today
+  roam-cli get --today --json
+  roam-cli get --daily yesterday
+
+## Read a page or block
 
   roam-cli get "Page Title"
   roam-cli get "((block-uid))"
   roam-cli get "Page Title" --json
+
+## Journal by date
+
+  roam-cli journal --date today
+  roam-cli journal --date yesterday --topic "Work Log"
 
 ## Search blocks
 
   roam-cli search term1 term2 --limit 20
   roam-cli search keyword --page "Project" --ignore-case
 
+## Search aggregated by page
+
+  roam-cli search-pages "meeting" "action item" --limit 10
+  roam-cli search-pages "TODO" --daily-topic "[[TODO]]" --json
+
 ## Datalog query
 
   roam-cli q '[:find ?title :where [?e :node/title ?title]]'
 
-## Journal by date
+## Find block UID (low-level)
 
-  roam-cli journal --date 2026-02-12
-  roam-cli journal --date 2026-02-12 --topic "Work Log"
-
-## Find block UID
-
-  roam-cli block find --text "[[📖 Daily Reading]]" --daily 2026-02-15
-  roam-cli block find --text "Status" --page "Project Dashboard"
-
-## Get block recursively
-
-  roam-cli block get --uid <uid>`,
+  roam-cli block find --text "[[📖 Daily Reading]]" --today
+  roam-cli block find --text "Status" --page "Project Dashboard"`,
 	},
 	{
 		Name: "write",
-		Desc: "Save markdown, create blocks, batch operations",
-		Content: `## Save to daily page (preferred for daily notes — one-shot)
+		Desc: "Save GFM markdown and create content",
+		Content: `## Save GFM markdown to today's daily page (recommended)
 
-  cat note.md | roam-cli save --to-daily-page
-  cat note.md | roam-cli save --to-daily-page 2026-03-14
+  printf '- journal entry' | roam-cli save --today
+  printf '- entry' | roam-cli save --today --under '[[📽 Journaling]]'
+  cat highlights.md | roam-cli save --today --under '[[📖 Daily Reading]]'
 
-## Save markdown as page
+## Create TODOs
+
+  printf '- {{[[TODO]]}} Review PR\n- {{[[TODO]]}} Call dentist' \
+    | roam-cli save --today --under '[[TODO]]'
+
+## Save to a named page
 
   cat note.md | roam-cli save --title "New Page"
-  roam-cli save --title "New Page" --file ./note.md
-  roam-cli save --parent <uid> --file ./note.md
+  roam-cli save --title "Project X" --under '[[Tasks]]' --file ./tasks.md
 
-## Create blocks (single, nested tree, or attach-to)
+## Get UID back for follow-up
 
-  # Single block
+  UID=$(printf '- item' | roam-cli save --today --under '[[Inbox]]' --plain)
+  printf '- detail' | roam-cli save --parent "$UID"
+
+## Low-level: block create (JSON input, explicit UIDs)
+
   roam-cli block create --parent <uid> --text "hello"
-
-  # Nested tree from JSON
-  echo '{"text":"headline","children":[{"text":"child 1"},{"text":"child 2"}]}' \
+  echo '{"text":"Root","children":[{"text":"Child"}]}' \
     | roam-cli block create --parent <uid>
-  roam-cli block create --parent <uid> --file ./tree.json
+  roam-cli block create --parent <uid> --attach-to "[[Section]]" --file tree.json
 
-  # Attach-to: find or create section, then insert under it
-  roam-cli block create --parent <page-uid> --attach-to "[[📽 Journaling]]" --text "item"
-  roam-cli block create --parent <page-uid> --attach-to "[[📽 Journaling]]" --file items.json
-
-## Batch operations (preferred for mixed action types)
+## Low-level: batch operations
 
   roam-cli batch run --file ./actions.json
   echo '[...]' | roam-cli batch run
@@ -86,63 +96,64 @@ var categories = []exampleCategory{
 ## Other block operations
 
   roam-cli block update --uid <uid> --text "updated"
-  roam-cli block move   --uid <uid> --parent <target-uid> --order last
   roam-cli block delete --uid <uid>`,
 	},
 	{
 		Name: "workflow",
-		Desc: "Common multi-step patterns for efficient Roam operations",
-		Content: `## Save to today's daily page (1 call)
+		Desc: "Common daily workflows and multi-step patterns",
+		Content: `## Daily capture (most common operation)
 
-  cat note.md | roam-cli save --to-daily-page
-  echo '# Article Summary' | roam-cli save --to-daily-page 2026-03-14
+  # Quick note to today's journal section
+  printf '- Had a great idea about X' | roam-cli save --today --under '[[📽 Journaling]]'
 
-## Insert under an existing section (1 call with --attach-to)
+  # Meeting notes under today's page
+  cat meeting.md | roam-cli save --today --under '[[Meeting Notes]]'
 
-  # Find or create "Daily Reading" section, insert under it
-  roam-cli block create --parent <daily-page-uid> \
-    --attach-to "[[📖 Daily Reading]]" --file article.json
+## Morning review
 
-## Build a project status tree (1 call, not N)
+  # Check today's daily page
+  roam-cli get --today
+
+  # Check yesterday's journal
+  roam-cli journal --date yesterday
+
+## Organize: move blocks to project pages
+
+  # Move a block from daily page to a project
+  roam-cli move --uid <block> --title "Project X" --under '[[Tasks]]'
+
+  # Move to today's archive section
+  roam-cli move --uid <block> --today --under '[[Archive]]'
+
+## Save and follow up (composing commands)
+
+  # Save content, get UID, add more under it
+  UID=$(printf '- headline' | roam-cli save --today --under '[[📽 Journaling]]' --plain)
+  printf '- detail 1\n- detail 2' | roam-cli save --parent "$UID"
+
+## Build a tree in one call (not N calls)
 
   # WRONG: sequential block create calls
   #   uid1=$(roam-cli block create --parent $PAGE --text "Project A" --plain)
   #   roam-cli block create --parent $uid1 --text "Task 1"
-  #   roam-cli block create --parent $uid1 --text "Task 2"
 
   # RIGHT: single call with JSON tree
   echo '{"text":"Project A","children":[
     {"text":"Task 1"},
-    {"text":"Task 2"},
-    {"text":"Task 3","children":[{"text":"Subtask 3.1"}]}
+    {"text":"Task 2"}
   ]}' | roam-cli block create --parent "$PAGE"
 
-## Search/find on a daily page (pass ISO date)
-
-  roam-cli search --page 2026-03-14 keyword
-  roam-cli block find --page 2026-03-14 --text "[[📖 Daily Reading]]"
-
-## Save a long document as a page
-
-  cat <<'EOF' | roam-cli save --title "Weekly Report 2026-W11"
-  ## Highlights
-  - Feature A shipped
-  - Bug B fixed
-
-  ## Metrics
-  | Metric | Value |
-  | --- | --- |
-  | PRs merged | 12 |
-  | Issues closed | 8 |
-  EOF
-
-## Batch: move multiple blocks + update
+## Batch: move + update multiple blocks
 
   echo '[
     {"action":"move-block","location":{"parent-uid":"target","order":"last"},"block":{"uid":"abc"}},
-    {"action":"move-block","location":{"parent-uid":"target","order":"last"},"block":{"uid":"def"}},
     {"action":"update-block","block":{"uid":"abc","string":"moved and updated"}}
-  ]' | roam-cli batch run`,
+  ]' | roam-cli batch run
+
+## Prefer printf piping over --text flags
+
+  # Shell-safe: printf preserves [[ ]] and emoji
+  printf '- [[📽 Journaling]] entry with [[links]]' | roam-cli save --today`,
 	},
 }
 
@@ -228,8 +239,9 @@ func installHelpCmd(root *cobra.Command) {
 	})
 
 	helpCmd := &cobra.Command{
-		Use:   "help [command | topic | category]",
-		Short: "Help about any command, help topic, or example category",
+		Use:     "help [command | topic | category]",
+		Short:   "Help about any command, help topic, or example category",
+		GroupID: "daily",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			w := cmd.OutOrStdout()
 			if len(args) == 0 {

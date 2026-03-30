@@ -29,9 +29,6 @@ func newBlockCmd() *cobra.Command {
 func newBlockCreateCmd() *cobra.Command {
 	var parentUID, text, uid, order string
 	var attachTo string
-	var daily string
-	var today bool
-	var page string
 	var file string
 	var useStdin bool
 	var open bool
@@ -41,84 +38,28 @@ func newBlockCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a block or nested tree of blocks",
-		Long: `Create blocks under a parent. The parent can be specified by:
+		Long: `Create blocks under a parent UID. Supports three modes:
 
-  --parent <uid>       Direct block/page UID
-  --today              Today's daily page
-  --daily <date>       Daily page by date (YYYY-MM-DD, today, yesterday, tomorrow)
-  --page <title>       Page by title
-
-Content modes:
-
-  --text "content"     Single block
-  --file tree.json     Nested tree from JSON file (or pipe via stdin)
-  --attach-to "[[X]]"  Find or create section block, then create content under it
+1. Single block:   --text "content"
+2. Nested tree:    --file tree.json  (or pipe JSON via stdin)
+3. Attach-to:      --attach-to "[[Section]]" finds or creates the section block
+                   under --parent, then creates content under it.
 
 JSON input accepts a single object or array; each node: text/string, children, uid, order, open.`,
 		Example: `  roam-cli block create --parent <uid> --text "Hello"
-  roam-cli block create --today --attach-to "[[📽 Journaling]]" --text "item"
-  roam-cli block create --daily yesterday --attach-to "[[📽 Journaling]]" --file items.json
-  roam-cli block create --page "Project Notes" --text "todo"
-  echo '{"text":"Root","children":[{"text":"Child"}]}' | roam-cli block create --parent <uid>`,
+  echo '{"text":"Root","children":[{"text":"Child"}]}' | roam-cli block create --parent <uid>
+  roam-cli block create --parent <uid> --attach-to "[[📽 Journaling]]" --file items.json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := validateOutputFlags(asJSON, asPlain); err != nil {
 				return err
 			}
-			if today && daily != "" {
-				return fmt.Errorf("--today and --daily cannot be used together")
-			}
-			if today {
-				daily = "today"
-			}
-
-			// Count how many parent-target flags are set
-			targets := 0
-			if parentUID != "" {
-				targets++
-			}
-			if daily != "" {
-				targets++
-			}
-			if page != "" {
-				targets++
-			}
-			if targets == 0 {
-				return fmt.Errorf("one of --parent, --today, --daily, or --page is required")
-			}
-			if targets > 1 {
-				return fmt.Errorf("--parent, --today/--daily, and --page are mutually exclusive")
+			if parentUID == "" {
+				return errMissingFlag("parent")
 			}
 
 			c, err := mustClient()
 			if err != nil {
 				return err
-			}
-
-			// Resolve --daily or --page into parentUID
-			if daily != "" {
-				when, err := parseDateFlexible(daily)
-				if err != nil {
-					return err
-				}
-				title := client.DailyTitle(when)
-				pageUID, err := c.GetPageUIDByTitle(title)
-				if err != nil {
-					return fmt.Errorf("failed to look up daily page %q: %w", title, err)
-				}
-				if pageUID == "" {
-					return fmt.Errorf("daily page %q does not exist", title)
-				}
-				parentUID = pageUID
-			}
-			if page != "" {
-				pageUID, err := c.GetPageUIDByTitle(page)
-				if err != nil {
-					return fmt.Errorf("failed to look up page %q: %w", page, err)
-				}
-				if pageUID == "" {
-					return fmt.Errorf("page %q does not exist", page)
-				}
-				parentUID = pageUID
 			}
 
 			// Resolve attach-to: find or create the intermediate parent
@@ -220,15 +161,12 @@ JSON input accepts a single object or array; each node: text/string, children, u
 		},
 	}
 
-	cmd.Flags().StringVar(&parentUID, "parent", "", "Parent block/page UID")
-	cmd.Flags().BoolVar(&today, "today", false, "Use today's daily page as parent")
-	cmd.Flags().StringVar(&daily, "daily", "", "Use daily page as parent (YYYY-MM-DD, today, yesterday, tomorrow)")
-	cmd.Flags().StringVar(&page, "page", "", "Use named page as parent")
+	cmd.Flags().StringVar(&parentUID, "parent", "", "Parent block UID (required)")
 	cmd.Flags().StringVar(&text, "text", "", "Block text (single block mode)")
 	cmd.Flags().StringVar(&uid, "uid", "", "Optional block uid")
 	cmd.Flags().StringVar(&order, "order", "last", "Order: first|last|<int>")
 	cmd.Flags().BoolVar(&open, "open", true, "Block open state")
-	cmd.Flags().StringVar(&attachTo, "attach-to", "", "Find or create a section block under parent, then create content under it")
+	cmd.Flags().StringVar(&attachTo, "attach-to", "", "Find or create a block with this text under parent, use as actual parent")
 	cmd.Flags().StringVar(&file, "file", "", "JSON input file for tree creation")
 	cmd.Flags().BoolVar(&useStdin, "stdin", false, "Read JSON tree from stdin")
 	cmd.Flags().BoolVar(&asJSON, "json", false, "Output result as JSON")

@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/Leechael/roam-cli/internal/client"
 	"github.com/Leechael/roam-cli/internal/format"
 	"github.com/Leechael/roam-cli/internal/parser"
 )
@@ -12,28 +13,63 @@ import (
 func newGetCmd() *cobra.Command {
 	var asJSON bool
 	var asPlain bool
+	var daily string
+	var today bool
 
 	cmd := &cobra.Command{
-		Use:   "get <identifier>",
-		Short: "Get page by title or block by uid",
-		Args:  cobra.ExactArgs(1),
+		Use:   "get [identifier]",
+		Short: "Get page by title, block by uid, or daily page by date",
+		Example: `  roam-cli get "Page Title"
+  roam-cli get "((block-uid))"
+  roam-cli get --today
+  roam-cli get --daily yesterday
+  roam-cli get --daily 2026-03-14`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if asJSON && asPlain {
 				return fmt.Errorf("--json and --plain cannot be used together")
 			}
+			if today && daily != "" {
+				return fmt.Errorf("--today and --daily cannot be used together")
+			}
+			if today {
+				daily = "today"
+			}
 
-			identifier := args[0]
+			hasDaily := daily != ""
+			hasArg := len(args) > 0
+
+			if hasDaily && hasArg {
+				return fmt.Errorf("--today/--daily and positional argument are mutually exclusive")
+			}
+			if !hasDaily && !hasArg {
+				return fmt.Errorf("provide a page title/block uid, or use --today/--daily")
+			}
+
 			c, err := mustClient()
 			if err != nil {
 				return err
 			}
 
-			var result map[string]any
+			// Resolve daily page to title
+			var identifier string
 			isPage := false
-			if uid, ok := parser.ParseUID(identifier); ok {
-				result, err = c.GetBlockByUID(uid)
+			if hasDaily {
+				when, err := parseDateFlexible(daily)
 				if err != nil {
 					return err
+				}
+				identifier = client.DailyTitle(when)
+			} else {
+				identifier = args[0]
+			}
+
+			var result map[string]any
+			if !hasDaily {
+				if uid, ok := parser.ParseUID(identifier); ok {
+					result, err = c.GetBlockByUID(uid)
+					if err != nil {
+						return err
+					}
 				}
 			}
 			if result == nil {
@@ -64,6 +100,8 @@ func newGetCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&asJSON, "json", false, "Output raw JSON")
 	cmd.Flags().BoolVar(&asPlain, "plain", false, "Output plain markdown")
+	cmd.Flags().BoolVar(&today, "today", false, "Get today's daily page")
+	cmd.Flags().StringVar(&daily, "daily", "", "Get daily page by date (YYYY-MM-DD, today, yesterday, tomorrow)")
 	return cmd
 }
 

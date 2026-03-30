@@ -49,7 +49,7 @@ func newSaveCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "save",
 		Aliases: []string{"save-markdown"},
-		Short:   "Save markdown as a Roam page or under a parent block",
+		Short:   "Save GFM markdown as a Roam page or daily page section",
 		Example: `  cat note.md | roam-cli save --title "New Page"
   cat note.md | roam-cli save --to-daily-page 2026-03-14
   echo "- journal entry" | roam-cli save --today
@@ -152,11 +152,16 @@ func newSaveCmd() *cobra.Command {
 				"title":      title,
 				"page_uid":   pageUID,
 				"parent_uid": parentUID,
+				"target_uid": target,
 				"actions":    len(actions),
 				"response":   resp,
 			}
 			if asJSON {
 				return prettyPrint(payload)
+			}
+			if asPlain {
+				fmt.Println(target)
+				return nil
 			}
 			if mode == "page" {
 				fmt.Printf("saved page %q (%s) with %d actions\n", title, pageUID, len(actions))
