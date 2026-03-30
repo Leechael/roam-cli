@@ -19,16 +19,13 @@ Low-level API:
   q            Execute raw datalog query
 
 Flags:
-      --base-url string   Roam API base URL (overrides ROAM_API_BASE_URL)
-      --graph string      Roam graph name (overrides ROAM_API_GRAPH)
-  -h, --help              help for roam-cli
-      --timeout int       Request timeout in seconds (overrides ROAM_TIMEOUT_SECONDS)
-      --token string      Roam API token (overrides ROAM_API_TOKEN)
-  -v, --version           version for roam-cli
+  -h, --help      help for roam-cli
+  -v, --version   version for roam-cli
 
 Use "roam-cli [command] --help" for more information about a command.
 
 HELP TOPICS
+  configuration  How to set up credentials and connection options for roam-cli.
   datalog        Roam Research exposes a Datomic-flavored Datalog query API with Clojure built-in functions.
   exit-codes     Stable exit codes for scripting and automation.
   format         How `save` converts GitHub Flavored Markdown (GFM) into Roam blocks.

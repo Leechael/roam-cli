@@ -36,7 +36,14 @@ func New(token, graph, baseURL string, timeoutSeconds int) (*Config, error) {
 		timeoutSeconds = timeoutFromEnv()
 	}
 	if token == "" || graph == "" {
-		return nil, fmt.Errorf("ROAM_API_TOKEN and ROAM_API_GRAPH are required (via flags or env)")
+		var missing []string
+		if token == "" {
+			missing = append(missing, "ROAM_API_TOKEN")
+		}
+		if graph == "" {
+			missing = append(missing, "ROAM_API_GRAPH")
+		}
+		return nil, fmt.Errorf("%s not set. Run \"roam-cli help configuration\" for setup instructions", strings.Join(missing, " and "))
 	}
 
 	return &Config{
