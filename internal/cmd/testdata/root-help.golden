@@ -3,18 +3,20 @@ Roam Research CLI (Go)
 Usage:
   roam-cli [command]
 
-Available Commands:
-  batch        Low-level batch actions API
-  block        Low-level block APIs
-  completion   Generate the autocompletion script for the specified shell
-  get          Get page by title or block by uid
+Daily Use:
+  get          Get page by title, block by uid, or daily page by date
   help         Help about any command, help topic, or example category
   journal      Get journaling blocks from Daily Notes
-  q            Execute raw datalog query
-  save         Save markdown as a Roam page or under a parent block
+  move         Move a block to a page or section
+  save         Save GFM markdown as a Roam page or daily page section
   search       Search blocks containing all terms
   search-pages Multi-query search aggregated by page
   status       Check roam-cli credential and API connectivity status
+
+Low-level API:
+  batch        Low-level batch actions API
+  block        Low-level block APIs
+  q            Execute raw datalog query
 
 Flags:
       --base-url string   Roam API base URL (overrides ROAM_API_BASE_URL)
@@ -29,11 +31,13 @@ Use "roam-cli [command] --help" for more information about a command.
 HELP TOPICS
   datalog        Roam Research exposes a Datomic-flavored Datalog query API with Clojure built-in functions.
   exit-codes     Stable exit codes for scripting and automation.
+  format         How `save` converts GitHub Flavored Markdown (GFM) into Roam blocks.
+  writing-guide  Choose the right command for writing content to Roam Research.
 
 Use "roam-cli help <topic>" for more information about a topic.
 
 Example categories (roam-cli help <category>):
-  read         Read pages, blocks, search, query, and journal
-  write        Save markdown, create blocks, batch operations
-  workflow     Common multi-step patterns for efficient Roam operations
+  read         Read pages, blocks, daily notes, and search
+  write        Save GFM markdown and create content
+  workflow     Common daily workflows and multi-step patterns
   all          Show all categories
