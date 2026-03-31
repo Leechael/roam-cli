@@ -10,8 +10,7 @@ Daily Use:
   move         Move a block to a page or section
   onepassword  Manage 1Password shell plugin integration
   save         Save GFM markdown as a Roam page or daily page section
-  search       Search blocks containing all terms
-  search-pages Multi-query search aggregated by page
+  search       Search blocks or pages by terms
   status       Check roam-cli credential and API connectivity status
 
 Low-level API:
