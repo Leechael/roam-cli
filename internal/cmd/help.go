@@ -43,10 +43,15 @@ var categories = []exampleCategory{
   roam-cli search term1 term2 --limit 20
   roam-cli search keyword --page "Project" --ignore-case
 
-## Search aggregated by page
+## Search aggregated by page (default)
 
-  roam-cli search-pages "meeting" "action item" --limit 10
-  roam-cli search-pages "TODO" --daily-topic "[[TODO]]" --json
+  roam-cli search "meeting" "action item" --limit 10
+  roam-cli search "TODO" --daily-topic "[[TODO]]" --json
+
+## Search individual blocks
+
+  roam-cli search keyword --type block --limit 20
+  roam-cli search keyword --type block --page "Project" -i
 
 ## Datalog query
 

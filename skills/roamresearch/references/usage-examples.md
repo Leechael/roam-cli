@@ -27,21 +27,21 @@ roam-cli journal --date yesterday --topic "Work Log"
 roam-cli journal --date 2026-02-12
 ```
 
-### Search blocks
+### Search pages (default)
 
 ```bash
-roam-cli search term1 term2 --limit 20
-roam-cli search keyword --page "Project" --ignore-case
+roam-cli search "meeting" "action item" --limit 10
+roam-cli search "TODO" --daily-topic "[[TODO]]" --json
 
 # Search on a daily page (pass ISO date, auto-resolved)
 roam-cli search keyword --page 2026-03-14
 ```
 
-### Search pages (multi-query)
+### Search individual blocks
 
 ```bash
-roam-cli search-pages "meeting" "action item" --limit 10
-roam-cli search-pages "TODO" --daily-topic "[[TODO]]" --json
+roam-cli search term1 term2 --type block --limit 20
+roam-cli search keyword --type block --page "Project" -i
 ```
 
 ### Save to daily page (most common operation)

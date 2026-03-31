@@ -4,19 +4,18 @@ Usage:
   roam-cli [command]
 
 Daily Use:
-  get          Get page by title, block by uid, or daily page by date
-  help         Help about any command, help topic, or example category
-  journal      Get journaling blocks from Daily Notes
-  move         Move a block to a page or section
-  save         Save GFM markdown as a Roam page or daily page section
-  search       Search blocks containing all terms
-  search-pages Multi-query search aggregated by page
-  status       Check roam-cli credential and API connectivity status
+  get         Get page by title, block by uid, or daily page by date
+  help        Help about any command, help topic, or example category
+  journal     Get journaling blocks from Daily Notes
+  move        Move a block to a page or section
+  save        Save GFM markdown as a Roam page or daily page section
+  search      Search blocks or pages by terms
+  status      Check roam-cli credential and API connectivity status
 
 Low-level API:
-  batch        Low-level batch actions API
-  block        Low-level block APIs
-  q            Execute raw datalog query
+  batch       Low-level batch actions API
+  block       Low-level block APIs
+  q           Execute raw datalog query
 
 Flags:
   -h, --help      help for roam-cli
