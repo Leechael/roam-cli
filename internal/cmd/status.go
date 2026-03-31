@@ -38,14 +38,13 @@ func newStatusCmd() *cobra.Command {
 
 			c, err := mustClient()
 			if err != nil {
-				msg := "Roam credentials are not configured. Set ROAM_API_TOKEN and ROAM_API_GRAPH, then try again."
-				payload := map[string]any{"ok": false, "message": msg, "error": err.Error()}
+				payload := map[string]any{"ok": false, "error": err.Error()}
 				if asJSON {
 					if printErr := render(payload); printErr != nil {
 						return printErr
 					}
 				}
-				return fmt.Errorf("%s\n%s", msg, err)
+				return err
 			}
 
 			_, err = c.Q(`[:find ?title :where [?e :node/title ?title]]`, nil)

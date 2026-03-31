@@ -18,54 +18,63 @@ If not set up, see `references/installation.md`.
 
 ## Command Mapping
 
+Commands are grouped into two tiers. **Use Daily Use commands first** — they handle page resolution internally. Only fall back to Low-level API when you need explicit UID control or JSON input.
+
+### Daily Use (markdown, name-based targeting)
+
 | Command | Purpose |
 |---|---|
-| `get` | Read page by title or block by UID |
-| `search` | Search blocks by terms |
-| `search-pages` | Multi-query search aggregated by page, with daily page drill-down |
-| `q` | Run raw datalog query |
-| `save` | Save GFM markdown as a page, daily page (`--to-daily-page` / `--today`), or under a parent block; `--under` finds-or-creates a child block |
+| `save` | Write GFM markdown to a page, daily page, or section. Converts headings, lists, tables, code blocks. **Default choice for all writes.** |
+| `get` | Read page by title, block by UID, or daily page (`--today` / `--daily`) |
+| `search` | Search by terms. `--type page` (default) aggregates by page; `--type block` returns individual blocks |
 | `journal` | Read daily journaling blocks |
-| `block find` | Find block UID by text on a page/daily note |
-| `block create` | Create block(s) — single, nested tree, or with `--attach-to` |
-| `block update/delete/move/get` | Low-level single-block operations |
+| `move` | Move a block to a page or section by name (`--title` / `--today` / `--under`) |
+| `status` | Verify credentials and API connectivity |
+
+### Low-level API (JSON, explicit UIDs)
+
+| Command | Purpose |
+|---|---|
+| `block create` | Create block(s) from JSON tree or single text under a known parent UID |
+| `block update/delete/move/get/find` | Single-block CRUD by UID |
 | `batch run` | Batch actions from JSON array |
+| `q` | Run raw datalog query |
 
 Run `roam-cli help <category>` for categorized usage examples. Categories: `read`, `write`, `workflow`, or `all`.
 
 ## Search Strategy
 
-**Use `search-pages` for broad retrieval, `search` for targeted lookup.**
+**Use `search` (default `--type page`) for broad retrieval, `search --type block` for targeted block lookup.**
 
 | Scenario | Use this |
 |---|---|
-| Find pages related to a topic across the whole graph | `search-pages` with multiple query args |
+| Find pages related to a topic across the whole graph | `search` with multiple query args (defaults to `--type page`) |
 | Find specific blocks containing exact terms | `search` |
 | Search within a known page | `search --page "Page Title"` |
 
-### `search-pages` — multi-query page-level search
+### `search` — page-level search (default mode)
 
 Each positional argument is an independent query. Terms within one argument are AND-matched (block must contain all terms). Results are deduplicated, aggregated by page, and sorted by queries matched then hit count.
 
 ```bash
 # Multiple independent queries — results merged and ranked
-roam-cli search-pages "SaaS 倒闭" "AI 贷款" "SaaS shutdown" -i
+roam-cli search "SaaS 倒闭" "AI 贷款" "SaaS shutdown" -i
 
 # With --json for structured output (pipe to rerank tools)
-roam-cli search-pages "query1" "query2" -i --json
+roam-cli search "query1" "query2" -i --json
 
 # Limit results
-roam-cli search-pages "broad term" -i --limit 20
+roam-cli search "broad term" -i --limit 20
 ```
 
 **Daily page handling:** Daily pages (e.g. "March 8th, 2026") are automatically drilled down to show sections instead of the whole page.
 
 ```bash
 # Default: aggregate at first-level children of daily pages
-roam-cli search-pages "AI 贷款" -i
+roam-cli search "AI 贷款" -i
 
 # Drill deeper: aggregate at second level, filter first level by topic
-roam-cli search-pages "AI 贷款" -i --daily-depth 2 --daily-topic "📖 Daily Reading"
+roam-cli search "AI 贷款" -i --daily-depth 2 --daily-topic "📖 Daily Reading"
 ```
 
 | Flag | Purpose |
@@ -89,10 +98,22 @@ Output includes `((block_uid))` for each result — use `roam-cli get "((uid))"`
 | Save under a section in today's daily page | `save --today --under '[[Section]]'` | `block find` → `block create --parent` |
 | Save under a section in any page | `save --title "Page" --under '[[Section]]'` | `block find` → `block create --parent` |
 | Save a long document/article as a page | `save --title "Page Name"` | Sequential `block create` |
-| Create a parent with children | `block create --parent <uid> --file tree.json` | `block create` parent → `block create` child × N |
-| Insert under existing section | `block create --parent <uid> --attach-to "[[Section]]"` | `block find` → `block create --parent` |
+| Move block to a project page | `move --uid <uid> --title "Project" --under '[[Tasks]]'` | `block find` → `block move --parent` |
+| Move block to today's section | `move --uid <uid> --today --under '[[Archive]]'` | Manual UID lookup → `block move` |
+| Create a parent with children (JSON) | `block create --parent <uid> --file tree.json` | `block create` parent → `block create` child × N |
+| Insert JSON under existing section | `block create --parent <uid> --attach-to "[[Section]]"` | `block find` → `block create --parent` |
 | Multiple heterogeneous writes | `batch run` | Multiple individual write calls |
 | Single block, no children | `block create --parent <uid> --text "foo"` | (this is fine) |
+
+**Prefer `printf | save` over constructing `--text` arguments.** Shell escaping with `[[references]]` and emoji is fragile:
+
+```bash
+# Recommended
+printf '- {{[[TODO]]}} Review PR\n- entry with [[📽 Journaling]]' | roam-cli save --today --under '[[TODO]]'
+
+# Fragile — shell may eat [[ ]] or emoji
+roam-cli block create --parent <uid> --text "[[📽 Journaling]] entry"
+```
 
 ### `block create` modes
 
@@ -139,10 +160,12 @@ roam-cli block find --page 2026-03-14 --text "[[📖 Daily Reading]]"
 
 - Do NOT call `block create` in a loop to build a tree. Use JSON input with children.
 - Do NOT fire multiple `block create` in parallel to the same parent. Use `batch run` or JSON tree input.
-- Do NOT do multi-step "find block → then create under it". Use `--attach-to`.
+- Do NOT do multi-step "find block → then create under it". Use `save --under` or `block create --attach-to`.
 - Do NOT do multi-step "find daily page UID → then write". Use `save --today` or `save --to-daily-page`.
 - Do NOT do multi-step "find daily page → find section → write under it". Use `save --today --under '[[Section]]'`.
-- Do NOT manually construct "Month DDth, YYYY" date strings. Pass ISO dates (YYYY-MM-DD) to `--to-daily-page`, `--daily`, or `--page` — the CLI converts them.
+- Do NOT use `journal --json | jq` to extract a UID and pass to `block create --parent`. Journal returns **block UIDs**, not page UIDs. Use `save --today --under` instead.
+- Do NOT use `block create` when `save` would work. `save` handles markdown, page resolution, and upsert internally.
+- Do NOT manually construct "Month DDth, YYYY" date strings. Pass ISO dates (YYYY-MM-DD) or relative dates (`today`, `yesterday`, `tomorrow`) — the CLI converts them.
 - Do NOT add `--stdin` when piping — it's automatic.
 
 ## Pipeline Support
@@ -150,9 +173,25 @@ roam-cli block find --page 2026-03-14 --text "[[📖 Daily Reading]]"
 All commands that accept input (`save`, `block create`, `batch run`) read from stdin by default when `--file` is not given. No `--stdin` flag needed.
 
 ```bash
-echo '{"text":"root","children":[{"text":"child"}]}' | roam-cli block create --parent <uid>
+printf '- journal entry' | roam-cli save --today --under '[[📽 Journaling]]'
 cat note.md | roam-cli save --title "Page Name"
+echo '{"text":"root","children":[{"text":"child"}]}' | roam-cli block create --parent <uid>
 echo '[...]' | roam-cli batch run
+```
+
+### Composing commands with `--plain`
+
+`save --plain` outputs the target UID (page or parent block) for follow-up commands:
+
+```bash
+# Save and get UID back
+UID=$(printf '- item' | roam-cli save --today --under '[[Inbox]]' --plain)
+
+# Add more content under the same target
+printf '- detail' | roam-cli save --parent "$UID"
+
+# Or move another block there
+roam-cli move --uid <existing-block> --today --under '[[Inbox]]'
 ```
 
 ## `block create` JSON Input Contract
@@ -196,27 +235,34 @@ echo '[...]' | roam-cli batch run
 
 ## Date Handling
 
-The CLI auto-resolves ISO dates (YYYY-MM-DD) to Roam daily page titles wherever a page reference is expected:
+The CLI auto-resolves dates to Roam daily page titles. Accepts ISO dates (YYYY-MM-DD) or relative dates (`today`, `yesterday`, `tomorrow`).
 
 | Flag | Input | Resolved to |
 |---|---|---|
-| `save --to-daily-page` / `--today` | `2026-03-14` / today | Creates/finds page "March 14th, 2026" |
+| `save --to-daily-page` / `--today` | `2026-03-14` / `today` | Creates/finds page "March 14th, 2026" |
+| `get --today` / `--daily` | `today` / `yesterday` / `2026-03-14` | Reads daily page |
+| `move --today` / `--daily` | `today` / `2026-03-14` | Moves block to daily page |
 | `search --page` | `2026-03-14` | Searches in "March 14th, 2026" |
-| `block find --page` | `2026-03-14` | Finds block in "March 14th, 2026" |
-| `block find --daily` | `2026-03-14` | Finds by daily page UID (existing behavior) |
-| `journal --date` | `2026-03-14` | Reads daily journal (existing behavior) |
+| `journal --date` | `today` / `yesterday` / `2026-03-14` | Reads daily journal |
+| `block find --today` / `--daily` | `today` / `2026-03-14` | Finds block by daily page |
 
 ## Recommended Workflow
 
 1. `roam-cli status` — verify credentials.
-2. Read: `get`, `search`, `search-pages`, `q`, `journal`, `block find`.
+2. Read:
+   - Daily page → `get --today` or `get --daily yesterday`
+   - Page/block → `get "Page Title"` or `get "((uid))"`
+   - Journal → `journal --date today`
+   - Search → `search` (`--type page` default, `--type block` for blocks)
 3. Write (pick one, in order of preference):
-   - Daily page content → `save --today` or `save --to-daily-page`
-   - Daily page section → `save --today --under '[[Section]]'`
-   - Long markdown → `save --title`
-   - Nested blocks / attach to existing section → `block create` (with JSON + `--attach-to`)
+   - Daily page section → `printf '...' | save --today --under '[[Section]]'`
+   - Daily page content → `save --today`
+   - Named page → `save --title "Page Name"`
+   - Nested JSON blocks → `block create --parent <uid> --file tree.json`
    - Mixed operations → `batch run`
-   - Single block → `block create --text`
+4. Organize:
+   - Move to named page → `move --uid <uid> --title "Page" --under '[[Section]]'`
+   - Move to daily page → `move --uid <uid> --today --under '[[Section]]'`
 
 ## Save Markdown (GFM format)
 

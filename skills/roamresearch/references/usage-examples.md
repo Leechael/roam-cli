@@ -1,68 +1,118 @@
 # Usage Examples
 
-## Read page/block
+## Daily Use
+
+### Read today's daily page
+
+```bash
+roam-cli get --today
+roam-cli get --today --json
+roam-cli get --daily yesterday
+roam-cli get --daily 2026-03-14
+```
+
+### Read page/block
 
 ```bash
 roam-cli get "Page Title"
 roam-cli get "((block-uid))"
 roam-cli get "Page Title" --json
 ```
-## Search blocks
+
+### Journal by date
 
 ```bash
-roam-cli search term1 term2 --limit 20
-roam-cli search keyword --page "Project" --ignore-case
+roam-cli journal --date today
+roam-cli journal --date yesterday --topic "Work Log"
+roam-cli journal --date 2026-02-12
+```
+
+### Search pages (default)
+
+```bash
+roam-cli search "meeting" "action item" --limit 10
+roam-cli search "TODO" --daily-topic "[[TODO]]" --json
 
 # Search on a daily page (pass ISO date, auto-resolved)
 roam-cli search keyword --page 2026-03-14
 ```
 
-## Datalog query
+### Search individual blocks
+
+```bash
+roam-cli search term1 term2 --type block --limit 20
+roam-cli search keyword --type block --page "Project" -i
+```
+
+### Save to daily page (most common operation)
+
+```bash
+# Quick capture to today
+printf '- meeting notes\n- action items' | roam-cli save --today
+
+# Save under a section (find-or-create)
+printf '- journal entry' | roam-cli save --today --under '[[📽 Journaling]]'
+
+# Save reading highlights
+cat highlights.md | roam-cli save --today --under '[[📖 Daily Reading]]'
+
+# Save to a specific date
+cat note.md | roam-cli save --to-daily-page 2026-03-14
+```
+
+### Create TODOs
+
+```bash
+printf '- {{[[TODO]]}} Review PR #12\n- {{[[TODO]]}} Call dentist' \
+  | roam-cli save --today --under '[[TODO]]'
+```
+
+### Save to a named page
+
+```bash
+cat note.md | roam-cli save --title "New Page"
+roam-cli save --title "Project X" --under '[[Tasks]]' --file ./tasks.md
+```
+
+### Compose: save then follow up
+
+```bash
+# Get target UID back
+UID=$(printf '- headline' | roam-cli save --today --under '[[📽 Journaling]]' --plain)
+
+# Add more under the same target
+printf '- detail 1\n- detail 2' | roam-cli save --parent "$UID"
+```
+
+### Move blocks to organize
+
+```bash
+# Move a block to a project page section
+roam-cli move --uid <block-uid> --title "Project X" --under '[[Tasks]]'
+
+# Move to today's archive
+roam-cli move --uid <block-uid> --today --under '[[Archive]]'
+
+# Move to yesterday's daily page
+roam-cli move --uid <block-uid> --daily yesterday
+```
+
+### Datalog query
 
 ```bash
 roam-cli q '[:find ?title :where [?e :node/title ?title]]'
 ```
 
-## Save markdown
+## Low-level API
+
+### Find block UID
 
 ```bash
-# Save to a new page
-cat ./note.md | roam-cli save --title "New Page"
-roam-cli save --title "New Page" --file ./note.md
-
-# Save to today's daily page (one-shot)
-cat ./note.md | roam-cli save --to-daily-page
-
-# Save to a specific daily page
-cat ./note.md | roam-cli save --to-daily-page 2026-03-14
-
-# Save under an existing parent block
-roam-cli save --parent <uid> --file ./note.md
-```
-
-## Journal by date
-
-```bash
-roam-cli journal --date 2026-02-12
-roam-cli journal --date 2026-02-12 --topic "Work Log"
-```
-
-## Find block UID
-
-```bash
-# Find block by text on a daily note
-roam-cli block find --text "[[📖 Daily Reading]]" --daily 2026-02-15
-
-# Find block by text on a daily page (pass ISO date)
-roam-cli block find --text "[[📖 Daily Reading]]" --page 2026-02-15
-
-# Find block by text on a named page
+roam-cli block find --text "[[📖 Daily Reading]]" --today
 roam-cli block find --text "Status" --page "Project Dashboard"
 ```
 
-## Create blocks
-
-`block create` supports single blocks, nested trees (JSON), and `--attach-to` for find-or-create.
+### Create blocks (JSON input)
 
 ```bash
 # Single block
@@ -78,25 +128,11 @@ echo '[{"text":"item1"},{"text":"item2","children":[{"text":"sub"}]}]' | roam-cl
 roam-cli block create --parent <uid> --file ./tree.json
 
 # Attach-to: find or create section, then insert under it
-roam-cli block create --parent <page-uid> --attach-to "[[📽 Journaling]]" --text "new item"
-roam-cli block create --parent <page-uid> --attach-to "[[📽 Journaling]]" --file items.json
+roam-cli block create --parent <uid> --attach-to "[[📽 Journaling]]" --text "new item"
+roam-cli block create --parent <uid> --attach-to "[[📽 Journaling]]" --file items.json
 ```
 
-## Daily page workflows (one-shot)
-
-```bash
-# Save a tweet summary to today's daily page
-echo '{"text":"🐦 tweet headline","children":[{"text":"key point"}]}' \
-  | roam-cli save --to-daily-page
-
-# Save article notes to a specific daily page
-cat article.md | roam-cli save --to-daily-page 2026-03-14
-
-# Insert under a section on a daily page (attach-to)
-roam-cli block create --parent <daily-page-uid> --attach-to "[[📖 Daily Reading]]" --file article.json
-```
-
-## Low-level block operations
+### Block operations
 
 ```bash
 roam-cli block update --uid <uid> --text "updated"
@@ -105,13 +141,11 @@ roam-cli block delete --uid <uid>
 roam-cli block get --uid <uid>
 ```
 
-## Low-level batch operations
+### Batch operations
 
 ```bash
-# Native batch actions
 roam-cli batch run --file ./examples/actions.create-page-and-block.json
 roam-cli batch run --file ./examples/actions.bulk-update.json
-roam-cli batch run --file ./examples/actions.bulk-move.json
 
 # Batch with children and attach-to
 echo '[

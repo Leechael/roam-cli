@@ -52,11 +52,12 @@ func ExitCode(err error) int {
 
 func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
-		Use:           "roam-cli",
-		Short:         "Roam Research CLI (Go)",
-		Version:       Version,
-		SilenceUsage:  true,
-		SilenceErrors: true,
+		Use:                   "roam-cli",
+		Short:                 "Roam Research CLI (Go)",
+		Version:               Version,
+		SilenceUsage:          true,
+		SilenceErrors:         true,
+		CompletionOptions:     cobra.CompletionOptions{HiddenDefaultCmd: true},
 	}
 
 	root.PersistentFlags().StringVar(&opts.token, "token", "", "Roam API token (overrides ROAM_API_TOKEN)")
@@ -64,19 +65,39 @@ func newRootCmd() *cobra.Command {
 	root.PersistentFlags().StringVar(&opts.baseURL, "base-url", "", "Roam API base URL (overrides ROAM_API_BASE_URL)")
 	root.PersistentFlags().IntVar(&opts.timeout, "timeout", 0, "Request timeout in seconds (overrides ROAM_TIMEOUT_SECONDS)")
 
-	root.AddCommand(newStatusCmd())
-	root.AddCommand(newGetCmd())
-	root.AddCommand(newSearchCmd())
-	root.AddCommand(newSearchPagesCmd())
-	root.AddCommand(newQCmd())
-	root.AddCommand(newSaveCmd())
-	root.AddCommand(newJournalCmd())
-	root.AddCommand(newBlockCmd())
-	root.AddCommand(newBatchCmd())
+	// Hide connection flags from root --help; documented in "roam-cli help configuration"
+	root.PersistentFlags().MarkHidden("token")
+	root.PersistentFlags().MarkHidden("graph")
+	root.PersistentFlags().MarkHidden("base-url")
+	root.PersistentFlags().MarkHidden("timeout")
+
+	root.AddGroup(
+		&cobra.Group{ID: "daily", Title: "Daily Use:"},
+		&cobra.Group{ID: "lowlevel", Title: "Low-level API:"},
+	)
+
+	// Daily Use commands
+	addToGroup(root, "daily", newSaveCmd())
+	addToGroup(root, "daily", newGetCmd())
+	addToGroup(root, "daily", newSearchCmd())
+	addToGroup(root, "daily", newJournalCmd())
+	addToGroup(root, "daily", newMoveCmd())
+	addToGroup(root, "daily", newStatusCmd())
+
+	// Low-level API commands
+	addToGroup(root, "lowlevel", newBlockCmd())
+	addToGroup(root, "lowlevel", newBatchCmd())
+	addToGroup(root, "lowlevel", newQCmd())
 
 	installHelpCmd(root)
 
+
 	return root
+}
+
+func addToGroup(parent *cobra.Command, groupID string, child *cobra.Command) {
+	child.GroupID = groupID
+	parent.AddCommand(child)
 }
 
 func mustClient() (*client.Client, error) {
