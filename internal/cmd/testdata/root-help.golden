@@ -5,7 +5,7 @@ Usage:
 
 Daily Use:
   get         Get page by title, block by uid, or daily page by date
-  help        Help about any command, help topic, or example category
+  help        Help about any command or topic
   journal     Get journaling blocks from Daily Notes
   move        Move a block to a page or section
   save        Save GFM markdown as a Roam page or daily page section
@@ -24,16 +24,13 @@ Flags:
 Use "roam-cli [command] --help" for more information about a command.
 
 HELP TOPICS
-  configuration  How to set up credentials and connection options for roam-cli.
-  datalog        Roam Research exposes a Datomic-flavored Datalog query API with Clojure built-in functions.
-  exit-codes     Stable exit codes for scripting and automation.
-  format         How `save` converts GitHub Flavored Markdown (GFM) into Roam blocks.
-  writing-guide  Choose the right command for writing content to Roam Research.
+  configuration       How to set up credentials and connection options for roam-cli.
+  datalog             Roam Research exposes a Datomic-flavored Datalog query API with Clojure built-in functions.
+  exit-codes          Stable exit codes for scripting and automation.
+  format              How `save` converts GitHub Flavored Markdown (GFM) into Roam blocks.
+  read-examples       Examples for reading pages, blocks, daily notes, and searching.
+  workflow-examples   Common daily workflows and multi-step patterns.
+  write-examples      Examples for saving GFM markdown and creating content.
+  writing-guide       Choose the right command for writing content to Roam Research.
 
 Use "roam-cli help <topic>" for more information about a topic.
-
-Example categories (roam-cli help <category>):
-  read         Read pages, blocks, daily notes, and search
-  write        Save GFM markdown and create content
-  workflow     Common daily workflows and multi-step patterns
-  all          Show all categories
