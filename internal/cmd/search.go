@@ -66,9 +66,6 @@ func newSearchCmd() *cobra.Command {
 }
 
 func searchBlocks(c *client.Client, args []string, limit int, caseSensitive bool, page string, asJSON, asPlain bool) error {
-	if limit == 0 {
-		limit = 20
-	}
 	results, err := c.SearchBlocks(args, limit, caseSensitive, page)
 	if err != nil {
 		return err
@@ -106,7 +103,7 @@ func searchBlocks(c *client.Client, args []string, limit int, caseSensitive bool
 	}
 
 	fmt.Printf("---\n%d blocks across %d pages", total, len(order))
-	if total >= limit {
+	if limit > 0 && total >= limit {
 		fmt.Printf(" (limited to %d, use --limit to change)", limit)
 	}
 	fmt.Printf("\nUse --type page for results aggregated by page.\n")

@@ -5,7 +5,7 @@ Common daily workflows and multi-step patterns.
 ## Daily capture (most common operation)
 
     # Quick note to today's journal section
-    printf '- Had a great idea about X' | roam-cli save --today --under '[[📽 Journaling]]'
+    printf '%s\n' '- Had a great idea about X' | roam-cli save --today --under '[[📽 Journaling]]'
 
     # Meeting notes under today's page
     cat meeting.md | roam-cli save --today --under '[[Meeting Notes]]'
@@ -21,16 +21,16 @@ Common daily workflows and multi-step patterns.
 ## Organize: move blocks to project pages
 
     # Move a block from daily page to a project
-    roam-cli move --uid <block> --title "Project X" --under '[[Tasks]]'
+    roam-cli move --uid BLOCK_UID --title "Project X" --under '[[Tasks]]'
 
     # Move to today's archive section
-    roam-cli move --uid <block> --today --under '[[Archive]]'
+    roam-cli move --uid BLOCK_UID --today --under '[[Archive]]'
 
 ## Save and follow up (composing commands)
 
     # Save content, get UID, add more under it
-    UID=$(printf '- headline' | roam-cli save --today --under '[[📽 Journaling]]' --plain)
-    printf '- detail 1\n- detail 2' | roam-cli save --parent "$UID"
+    UID=$(printf '%s\n' '- headline' | roam-cli save --today --under '[[📽 Journaling]]' --plain)
+    printf '%s\n' '- detail 1' '- detail 2' | roam-cli save --parent "$UID"
 
 ## Build a tree in one call (not N calls)
 
@@ -54,4 +54,4 @@ Common daily workflows and multi-step patterns.
 ## Prefer printf piping over --text flags
 
     # Shell-safe: printf preserves [[ ]] and emoji
-    printf '- [[📽 Journaling]] entry with [[links]]' | roam-cli save --today
+    printf '%s\n' '- [[📽 Journaling]] entry with [[links]]' | roam-cli save --today

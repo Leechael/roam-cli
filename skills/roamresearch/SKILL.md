@@ -98,36 +98,36 @@ Output includes `((block_uid))` for each result — use `roam-cli get "((uid))"`
 | Save under a section in today's daily page | `save --today --under '[[Section]]'` | `block find` → `block create --parent` |
 | Save under a section in any page | `save --title "Page" --under '[[Section]]'` | `block find` → `block create --parent` |
 | Save a long document/article as a page | `save --title "Page Name"` | Sequential `block create` |
-| Move block to a project page | `move --uid <uid> --title "Project" --under '[[Tasks]]'` | `block find` → `block move --parent` |
-| Move block to today's section | `move --uid <uid> --today --under '[[Archive]]'` | Manual UID lookup → `block move` |
-| Create a parent with children (JSON) | `block create --parent <uid> --file tree.json` | `block create` parent → `block create` child × N |
-| Insert JSON under existing section | `block create --parent <uid> --attach-to "[[Section]]"` | `block find` → `block create --parent` |
+| Move block to a project page | `move --uid BLOCK_UID --title "Project" --under '[[Tasks]]'` | `block find` → `block move --parent` |
+| Move block to today's section | `move --uid BLOCK_UID --today --under '[[Archive]]'` | Manual UID lookup → `block move` |
+| Create a parent with children (JSON) | `block create --parent UID_HERE --file tree.json` | `block create` parent → `block create` child × N |
+| Insert JSON under existing section | `block create --parent UID_HERE --attach-to "[[Section]]"` | `block find` → `block create --parent` |
 | Multiple heterogeneous writes | `batch run` | Multiple individual write calls |
-| Single block, no children | `block create --parent <uid> --text "foo"` | (this is fine) |
+| Single block, no children | `block create --parent UID_HERE --text "foo"` | (this is fine) |
 
 **Prefer `printf | save` over constructing `--text` arguments.** Shell escaping with `[[references]]` and emoji is fragile:
 
 ```bash
 # Recommended
-printf '- {{[[TODO]]}} Review PR\n- entry with [[📽 Journaling]]' | roam-cli save --today --under '[[TODO]]'
+printf '%s\n' '- {{[[TODO]]}} Review PR' '- entry with [[📽 Journaling]]' | roam-cli save --today --under '[[TODO]]'
 
 # Fragile — shell may eat [[ ]] or emoji
-roam-cli block create --parent <uid> --text "[[📽 Journaling]] entry"
+roam-cli block create --parent UID_HERE --text "[[📽 Journaling]] entry"
 ```
 
 ### `block create` modes
 
 ```bash
 # Single block
-roam-cli block create --parent <uid> --text "Hello"
+roam-cli block create --parent UID_HERE --text "Hello"
 
 # Nested tree (JSON input via file or stdin)
-echo '{"text":"Root","children":[{"text":"Child"}]}' | roam-cli block create --parent <uid>
-roam-cli block create --parent <uid> --file tree.json
+echo '{"text":"Root","children":[{"text":"Child"}]}' | roam-cli block create --parent UID_HERE
+roam-cli block create --parent UID_HERE --file tree.json
 
 # Attach-to: find or create a section block, then insert under it
-roam-cli block create --parent <page-uid> --attach-to "[[📽 Journaling]]" --text "new item"
-roam-cli block create --parent <page-uid> --attach-to "[[📽 Journaling]]" --file items.json
+roam-cli block create --parent PAGE_UID --attach-to "[[📽 Journaling]]" --text "new item"
+roam-cli block create --parent PAGE_UID --attach-to "[[📽 Journaling]]" --file items.json
 ```
 
 `--attach-to` finds an existing block with matching text under `--parent`. If not found, creates it first. Then creates the content under that block.
@@ -173,9 +173,9 @@ roam-cli block find --page 2026-03-14 --text "[[📖 Daily Reading]]"
 All commands that accept input (`save`, `block create`, `batch run`) read from stdin by default when `--file` is not given. No `--stdin` flag needed.
 
 ```bash
-printf '- journal entry' | roam-cli save --today --under '[[📽 Journaling]]'
+printf '%s\n' '- journal entry' | roam-cli save --today --under '[[📽 Journaling]]'
 cat note.md | roam-cli save --title "Page Name"
-echo '{"text":"root","children":[{"text":"child"}]}' | roam-cli block create --parent <uid>
+echo '{"text":"root","children":[{"text":"child"}]}' | roam-cli block create --parent UID_HERE
 echo '[...]' | roam-cli batch run
 ```
 
@@ -185,18 +185,18 @@ echo '[...]' | roam-cli batch run
 
 ```bash
 # Save and get UID back
-UID=$(printf '- item' | roam-cli save --today --under '[[Inbox]]' --plain)
+UID=$(printf '%s\n' '- item' | roam-cli save --today --under '[[Inbox]]' --plain)
 
 # Add more content under the same target
-printf '- detail' | roam-cli save --parent "$UID"
+printf '%s\n' '- detail' | roam-cli save --parent "$UID"
 
 # Or move another block there
-roam-cli move --uid <existing-block> --today --under '[[Inbox]]'
+roam-cli move --uid BLOCK_UID --today --under '[[Inbox]]'
 ```
 
 ## `block create` JSON Input Contract
 
-- Requires `--parent <block-uid>`.
+- Requires `--parent BLOCK_UID`.
 - Accepts JSON from pipe or `--file`.
 - JSON supports either a single object or an array of objects.
 - Node shape: `text` (required), `children` (optional array of nodes).
@@ -258,11 +258,11 @@ The CLI auto-resolves dates to Roam daily page titles. Accepts ISO dates (YYYY-M
    - Daily page section → `printf '...' | save --today --under '[[Section]]'`
    - Daily page content → `save --today`
    - Named page → `save --title "Page Name"`
-   - Nested JSON blocks → `block create --parent <uid> --file tree.json`
+   - Nested JSON blocks → `block create --parent UID_HERE --file tree.json`
    - Mixed operations → `batch run`
 4. Organize:
-   - Move to named page → `move --uid <uid> --title "Page" --under '[[Section]]'`
-   - Move to daily page → `move --uid <uid> --today --under '[[Section]]'`
+   - Move to named page → `move --uid BLOCK_UID --title "Page" --under '[[Section]]'`
+   - Move to daily page → `move --uid BLOCK_UID --today --under '[[Section]]'`
 
 ## Save Markdown (GFM format)
 

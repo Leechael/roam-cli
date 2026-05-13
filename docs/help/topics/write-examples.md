@@ -4,13 +4,13 @@ Examples for saving GFM markdown and creating content.
 
 ## Save GFM markdown to today's daily page (recommended)
 
-    printf '- journal entry' | roam-cli save --today
-    printf '- entry' | roam-cli save --today --under '[[📽 Journaling]]'
+    printf '%s\n' '- journal entry' | roam-cli save --today
+    printf '%s\n' '- entry' | roam-cli save --today --under '[[📽 Journaling]]'
     cat highlights.md | roam-cli save --today --under '[[📖 Daily Reading]]'
 
 ## Create TODOs
 
-    printf '- {{[[TODO]]}} Review PR\n- {{[[TODO]]}} Call dentist' \
+    printf '%s\n' '- {{[[TODO]]}} Review PR' '- {{[[TODO]]}} Call dentist' \
       | roam-cli save --today --under '[[TODO]]'
 
 ## Save to a named page
@@ -20,15 +20,15 @@ Examples for saving GFM markdown and creating content.
 
 ## Get UID back for follow-up
 
-    UID=$(printf '- item' | roam-cli save --today --under '[[Inbox]]' --plain)
-    printf '- detail' | roam-cli save --parent "$UID"
+    UID=$(printf '%s\n' '- item' | roam-cli save --today --under '[[Inbox]]' --plain)
+    printf '%s\n' '- detail' | roam-cli save --parent "$UID"
 
 ## Low-level: block create (JSON input, explicit UIDs)
 
-    roam-cli block create --parent <uid> --text "hello"
+    roam-cli block create --parent UID_HERE --text "hello"
     echo '{"text":"Root","children":[{"text":"Child"}]}' \
-      | roam-cli block create --parent <uid>
-    roam-cli block create --parent <uid> --attach-to "[[Section]]" --file tree.json
+      | roam-cli block create --parent UID_HERE
+    roam-cli block create --parent UID_HERE --attach-to "[[Section]]" --file tree.json
 
 ## Low-level: batch operations
 
@@ -37,5 +37,5 @@ Examples for saving GFM markdown and creating content.
 
 ## Other block operations
 
-    roam-cli block update --uid <uid> --text "updated"
-    roam-cli block delete --uid <uid>
+    roam-cli block update --uid UID_HERE --text "updated"
+    roam-cli block delete --uid UID_HERE

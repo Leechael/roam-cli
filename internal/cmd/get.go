@@ -36,13 +36,14 @@ func newGetCmd() *cobra.Command {
 			}
 
 			hasDaily := daily != ""
-			hasArg := len(args) > 0
+			argCount := len(args)
+			hasArg := argCount > 0
 
 			if hasDaily && hasArg {
 				return fmt.Errorf("--today/--daily and positional argument are mutually exclusive")
 			}
-			if !hasDaily && !hasArg {
-				return fmt.Errorf("provide a page title/block uid, or use --today/--daily")
+			if !hasDaily && argCount != 1 {
+				return fmt.Errorf("provide exactly one page title/block uid, or use --today/--daily")
 			}
 
 			c, err := mustClient()

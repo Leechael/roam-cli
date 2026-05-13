@@ -32,6 +32,16 @@ func TestOutputModeMutualExclusion(t *testing.T) {
 			errText: "--json and --plain cannot be used together",
 		},
 		{
+			name: "get rejects extra positional args",
+			cmd: func() error {
+				opts = globalOptions{}
+				c := newGetCmd()
+				c.SetArgs([]string{"foo", "bar"})
+				return c.Execute()
+			},
+			errText: "provide exactly one page title/block uid, or use --today/--daily",
+		},
+		{
 			name: "search json and plain conflict",
 			cmd: func() error {
 				opts = globalOptions{}

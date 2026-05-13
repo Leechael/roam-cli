@@ -44,7 +44,7 @@ through as-is -- Roam renders standard markdown inline syntax natively.
 
 Save a structured document:
 
-```bash
+````bash
 cat <<'EOF' | roam-cli save --title "Weekly Report"
 ## Highlights
 - Feature A shipped
@@ -57,16 +57,16 @@ cat <<'EOF' | roam-cli save --title "Weekly Report"
 | Issues closed | 8 |
 
 ## Code snippet
-` `` go
+```go
 func main() { fmt.Println("hello") }
-` ``
-EOF
 ```
+EOF
+````
 
 Save a list to a daily page section:
 
 ```bash
-printf '- Meeting with Alice\n  - Discussed roadmap\n  - Action: review spec\n- Lunch break' \
+printf '%s\n' '- Meeting with Alice' '  - Discussed roadmap' '  - Action: review spec' '- Lunch break' \
   | roam-cli save --today --under '[[Meeting Notes]]'
 ```
 

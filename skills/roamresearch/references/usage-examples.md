@@ -48,10 +48,10 @@ roam-cli search keyword --type block --page "Project" -i
 
 ```bash
 # Quick capture to today
-printf '- meeting notes\n- action items' | roam-cli save --today
+printf '%s\n' '- meeting notes' '- action items' | roam-cli save --today
 
 # Save under a section (find-or-create)
-printf '- journal entry' | roam-cli save --today --under '[[📽 Journaling]]'
+printf '%s\n' '- journal entry' | roam-cli save --today --under '[[📽 Journaling]]'
 
 # Save reading highlights
 cat highlights.md | roam-cli save --today --under '[[📖 Daily Reading]]'
@@ -63,7 +63,7 @@ cat note.md | roam-cli save --to-daily-page 2026-03-14
 ### Create TODOs
 
 ```bash
-printf '- {{[[TODO]]}} Review PR #12\n- {{[[TODO]]}} Call dentist' \
+printf '%s\n' '- {{[[TODO]]}} Review PR #12' '- {{[[TODO]]}} Call dentist' \
   | roam-cli save --today --under '[[TODO]]'
 ```
 
@@ -78,32 +78,32 @@ roam-cli save --title "Project X" --under '[[Tasks]]' --file ./tasks.md
 
 ```bash
 # Get target UID back
-UID=$(printf '- headline' | roam-cli save --today --under '[[📽 Journaling]]' --plain)
+UID=$(printf '%s\n' '- headline' | roam-cli save --today --under '[[📽 Journaling]]' --plain)
 
 # Add more under the same target
-printf '- detail 1\n- detail 2' | roam-cli save --parent "$UID"
+printf '%s\n' '- detail 1' '- detail 2' | roam-cli save --parent "$UID"
 ```
 
 ### Move blocks to organize
 
 ```bash
 # Move a block to a project page section
-roam-cli move --uid <block-uid> --title "Project X" --under '[[Tasks]]'
+roam-cli move --uid BLOCK_UID --title "Project X" --under '[[Tasks]]'
 
 # Move to today's archive
-roam-cli move --uid <block-uid> --today --under '[[Archive]]'
+roam-cli move --uid BLOCK_UID --today --under '[[Archive]]'
 
 # Move to yesterday's daily page
-roam-cli move --uid <block-uid> --daily yesterday
+roam-cli move --uid BLOCK_UID --daily yesterday
 ```
+
+## Low-level API
 
 ### Datalog query
 
 ```bash
 roam-cli q '[:find ?title :where [?e :node/title ?title]]'
 ```
-
-## Low-level API
 
 ### Find block UID
 
@@ -116,29 +116,29 @@ roam-cli block find --text "Status" --page "Project Dashboard"
 
 ```bash
 # Single block
-roam-cli block create --parent <uid> --text "hello"
+roam-cli block create --parent UID_HERE --text "hello"
 
 # Nested tree from pipe (single object)
-echo '{"text":"headline","children":[{"text":"snapshot"}]}' | roam-cli block create --parent <uid>
+echo '{"text":"headline","children":[{"text":"snapshot"}]}' | roam-cli block create --parent UID_HERE
 
 # Nested tree from pipe (array)
-echo '[{"text":"item1"},{"text":"item2","children":[{"text":"sub"}]}]' | roam-cli block create --parent <uid>
+echo '[{"text":"item1"},{"text":"item2","children":[{"text":"sub"}]}]' | roam-cli block create --parent UID_HERE
 
 # From file
-roam-cli block create --parent <uid> --file ./tree.json
+roam-cli block create --parent UID_HERE --file ./tree.json
 
 # Attach-to: find or create section, then insert under it
-roam-cli block create --parent <uid> --attach-to "[[📽 Journaling]]" --text "new item"
-roam-cli block create --parent <uid> --attach-to "[[📽 Journaling]]" --file items.json
+roam-cli block create --parent UID_HERE --attach-to "[[📽 Journaling]]" --text "new item"
+roam-cli block create --parent UID_HERE --attach-to "[[📽 Journaling]]" --file items.json
 ```
 
 ### Block operations
 
 ```bash
-roam-cli block update --uid <uid> --text "updated"
-roam-cli block move --uid <uid> --parent <target-parent-uid> --order last
-roam-cli block delete --uid <uid>
-roam-cli block get --uid <uid>
+roam-cli block update --uid UID_HERE --text "updated"
+roam-cli block move --uid BLOCK_UID --parent TARGET_PARENT_UID --order last
+roam-cli block delete --uid UID_HERE
+roam-cli block get --uid UID_HERE
 ```
 
 ### Batch operations

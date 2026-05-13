@@ -150,3 +150,33 @@ func TestQ_EmptyBody(t *testing.T) {
 		t.Fatalf("expected nil result for empty body, got: %v", result)
 	}
 }
+
+func TestSearchBlocksLimitZeroIsUnlimited(t *testing.T) {
+	srv, c := testServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"result": []any{
+				[]any{"uid-a", "alpha", "Page A", "page-a"},
+				[]any{"uid-b", "alpha beta", "Page B", "page-b"},
+				[]any{"uid-c", "gamma alpha", "Page C", "page-c"},
+			},
+		})
+	})
+	defer srv.Close()
+
+	all, err := c.SearchBlocks([]string{"alpha"}, 0, true, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(all) != 3 {
+		t.Fatalf("expected all 3 results for limit 0, got %d", len(all))
+	}
+
+	limited, err := c.SearchBlocks([]string{"alpha"}, 2, true, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(limited) != 2 {
+		t.Fatalf("expected 2 results for limit 2, got %d", len(limited))
+	}
+}
