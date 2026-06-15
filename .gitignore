@@ -3,6 +3,7 @@
 *.exe
 *.test
 *.out
+contrib/1password-plugin/1password-plugin
 
 # Build artifacts
 dist/

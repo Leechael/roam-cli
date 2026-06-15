@@ -69,8 +69,12 @@ jobs:
             for arch in amd64 arm64; do
               artifact="dist/${BINARY_NAME}-${os}-${arch}.tar.gz"
               tmpdir=$(mktemp -d)
+              # Build main binary
               CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags="-s -w -X roam-cli/internal/cli.Version=${RELEASE_TAG#${TAG_PREFIX}}" -o "$tmpdir/${BINARY_NAME}" "$BUILD_TARGET"
-              tar -czf "$artifact" -C "$tmpdir" "$BINARY_NAME"
+              # Build 1Password shell plugin binary
+              CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags="-s -w" -o "$tmpdir/roamresearch" ./contrib/1password-plugin/
+              # Archive both binaries
+              tar -czf "$artifact" -C "$tmpdir" "${BINARY_NAME}" "roamresearch"
               rm -rf "$tmpdir"
             done
           done

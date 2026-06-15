@@ -66,6 +66,7 @@ func newRootCmd() *cobra.Command {
 
 	root.AddCommand(newStatusCmd())
 	root.AddCommand(newGetCmd())
+	RegisterOnepasswordCmd(root)
 	root.AddCommand(newSearchCmd())
 	root.AddCommand(newSearchPagesCmd())
 	root.AddCommand(newQCmd())

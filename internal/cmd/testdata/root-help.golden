@@ -10,6 +10,7 @@ Available Commands:
   get          Get page by title or block by uid
   help         Help about any command, help topic, or example category
   journal      Get journaling blocks from Daily Notes
+  onepassword  Manage 1Password shell plugin integration
   q            Execute raw datalog query
   save         Save markdown as a Roam page or under a parent block
   search       Search blocks containing all terms
@@ -27,6 +28,7 @@ Flags:
 Use "roam-cli [command] --help" for more information about a command.
 
 HELP TOPICS
+  configuration  `roam-cli` reads credentials from environment variables:
   datalog        Roam Research exposes a Datomic-flavored Datalog query API with Clojure built-in functions.
   exit-codes     Stable exit codes for scripting and automation.
 
