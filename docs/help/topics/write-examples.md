@@ -16,6 +16,7 @@ Examples for saving GFM markdown and creating content.
 ## Save to a named page
 
     cat note.md | roam-cli save --title "New Page"
+    cat note.md | roam-cli save --title "Project X" --replace
     roam-cli save --title "Project X" --under '[[Tasks]]' --file ./tasks.md
 
 ## Get UID back for follow-up

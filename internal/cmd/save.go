@@ -45,6 +45,7 @@ func newSaveCmd() *cobra.Command {
 	var pageUID string
 	var asJSON bool
 	var asPlain bool
+	var replace bool
 
 	cmd := &cobra.Command{
 		Use:     "save",
@@ -65,6 +66,12 @@ See "roam-cli help writing-guide" for command selection patterns and
 			}
 			if err := validateSaveTarget(title, parentUID, dailyPage, today); err != nil {
 				return err
+			}
+			if replace && strings.TrimSpace(parentUID) != "" {
+				return fmt.Errorf("--replace can only be used with --title, --to-daily-page, or --today")
+			}
+			if replace && strings.TrimSpace(under) != "" {
+				return fmt.Errorf("--replace cannot be used with --under")
 			}
 
 			// --today is shorthand for --to-daily-page with today's date
@@ -98,7 +105,6 @@ See "roam-cli help writing-guide" for command selection patterns and
 				return fmt.Errorf("no markdown content provided")
 			}
 
-			// Need client early for page/block lookups
 			c, err := mustClient()
 			if err != nil {
 				return err
@@ -107,29 +113,36 @@ See "roam-cli help writing-guide" for command selection patterns and
 			target := strings.TrimSpace(parentUID)
 			actions := []map[string]any{}
 			mode := "parent"
+			clearedBlocks := 0
 
 			if strings.TrimSpace(title) != "" {
 				mode = "page"
 
-				// Upsert: check if page already exists
 				existingUID, err := c.GetPageUIDByTitle(title)
 				if err != nil {
 					return fmt.Errorf("failed to check existing page: %w", err)
 				}
 				if existingUID != "" {
-					// Page exists — append to it
 					pageUID = existingUID
+					target = pageUID
+					if replace {
+						clearedUID, deleted, _, err := clearPageContent(c, title)
+						if err != nil {
+							return err
+						}
+						pageUID = clearedUID
+						target = pageUID
+						clearedBlocks = deleted
+					}
 				} else {
-					// Page does not exist — create it
 					if pageUID == "" {
 						pageUID = client.NewUID()
 					}
 					actions = append(actions, client.CreatePageAction(title, pageUID))
+					target = pageUID
 				}
-				target = pageUID
 			}
 
-			// --under: find-or-create a direct child block under the page
 			if strings.TrimSpace(under) != "" {
 				foundUID, err := c.FindBlockUnderParent(under, target)
 				if err != nil {
@@ -152,13 +165,14 @@ See "roam-cli help writing-guide" for command selection patterns and
 			}
 
 			payload := map[string]any{
-				"mode":       mode,
-				"title":      title,
-				"page_uid":   pageUID,
-				"parent_uid": parentUID,
-				"target_uid": target,
-				"actions":    len(actions),
-				"response":   resp,
+				"mode":           mode,
+				"title":          title,
+				"page_uid":       pageUID,
+				"parent_uid":     parentUID,
+				"target_uid":     target,
+				"actions":        len(actions),
+				"cleared_blocks": clearedBlocks,
+				"response":       resp,
 			}
 			if asJSON {
 				return prettyPrint(payload)
@@ -168,6 +182,10 @@ See "roam-cli help writing-guide" for command selection patterns and
 				return nil
 			}
 			if mode == "page" {
+				if replace && clearedBlocks > 0 {
+					fmt.Printf("replaced page %q (%s) with %d actions\n", title, pageUID, len(actions))
+					return nil
+				}
 				fmt.Printf("saved page %q (%s) with %d actions\n", title, pageUID, len(actions))
 				return nil
 			}
@@ -184,6 +202,7 @@ See "roam-cli help writing-guide" for command selection patterns and
 	cmd.Flags().StringVar(&file, "file", "", "Markdown file path (default: stdin)")
 	cmd.Flags().BoolVar(&useStdin, "stdin", false, "Read markdown from stdin")
 	cmd.Flags().StringVar(&pageUID, "uid", "", "Optional page uid (only with --title)")
+	cmd.Flags().BoolVar(&replace, "replace", false, "Replace existing page content before saving")
 	cmd.Flags().BoolVar(&asJSON, "json", false, "Output save result as JSON")
 	cmd.Flags().BoolVar(&asPlain, "plain", false, "Output save result as plain text")
 	return cmd

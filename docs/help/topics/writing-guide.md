@@ -8,6 +8,7 @@ roam-cli has two layers of write commands:
 
 - **save** -- high-level, takes markdown, resolves targets by name/date. Use this
   for daily notes, journaling, article saves, and most content creation.
+  Add `--replace` when you want to overwrite an existing page.
 - **block create** -- low-level, takes JSON trees or single text, requires explicit
   parent UID. Use this for batch imports, precise block placement, or when you
   need control over UIDs and ordering.
@@ -33,6 +34,16 @@ printf '%s\n' '- new task' | roam-cli save --title "Project X" --under '[[TODO]]
 
 # Get the UID back for follow-up commands
 UID=$(printf '%s\n' '- item' | roam-cli save --today --under '[[📽 Journaling]]' --plain)
+```
+
+### save with replacement
+
+```bash
+# Replace a named page
+cat note.md | roam-cli save --title "Project X" --replace
+
+# Replace today's daily page
+cat note.md | roam-cli save --today --replace
 ```
 
 ### block create (low-level)
@@ -80,7 +91,8 @@ roam-cli move --uid <existing-block> --today --under '[[📽 Journaling]]'
 - `save --under` and `block create --attach-to` do the same thing (find-or-create
   a child block). `--under` is the high-level name, `--attach-to` is the low-level
   name.
-- `save` to a page always appends at the end. It does not replace existing content.
+- `save` to a page appends by default. Use `--replace` to clear the existing
+  page content first.
 - `block create --parent` requires a UID. If you do not have one, use `save` with
   `--title`, `--today`, or `--to-daily-page` instead.
 - `save --plain` outputs the target UID (page UID in page mode, parent UID in

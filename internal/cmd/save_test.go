@@ -55,4 +55,7 @@ func TestSaveHelpMentionsHelpTopics(t *testing.T) {
 	if !bytes.Contains([]byte(out), []byte("roam-cli help write-examples")) {
 		t.Fatalf("expected save help to mention write-examples, got: %s", out)
 	}
+	if !bytes.Contains([]byte(out), []byte("--replace")) {
+		t.Fatalf("expected save help to mention --replace, got: %s", out)
+	}
 }

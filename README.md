@@ -198,6 +198,9 @@ printf '- entry' | roam-cli save --today --under '[[📽 Journaling]]'
 # Save to a named page
 cat note.md | roam-cli save --title "New Page"
 
+# Replace a named page
+cat note.md | roam-cli save --title "Project X" --replace
+
 # Save under a section in a named page
 printf '- new task' | roam-cli save --title "Project X" --under '[[TODO]]'
 
