@@ -50,6 +50,10 @@ func newSaveCmd() *cobra.Command {
 		Use:     "save",
 		Aliases: []string{"save-markdown"},
 		Short:   "Save GFM markdown as a Roam page or daily page section",
+		Long: `Save GFM markdown as a Roam page or daily page section.
+
+See "roam-cli help writing-guide" for command selection patterns and
+"roam-cli help write-examples" for concrete write examples.`,
 		Example: `  cat note.md | roam-cli save --title "New Page"
   cat note.md | roam-cli save --to-daily-page 2026-03-14
   echo "- journal entry" | roam-cli save --today
