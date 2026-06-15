@@ -2,14 +2,8 @@
 
 `roam-cli` is a command-line tool for working with your Roam Research graph.
 
-It supports:
-- page/block retrieval
-- full-text block search
-- raw datalog queries
-- markdown import as pages or under daily pages
-- daily journal extraction
-- low-level block and batch write operations
-- automatic batch chunking and rate-limit retry
+- **Daily Use**: Read pages, search content, save markdown, and manage daily notes
+- **Low-level API**: Direct access to blocks, batch actions, and Datalog queries
 
 ---
 
@@ -37,140 +31,287 @@ go build -o roam-cli ./cmd/roam-cli
 
 ---
 
-## Required configuration
+## Quick Start
 
-Set credentials via environment variables:
+```bash
+# Verify setup
+roam-cli status
+
+# Read today's daily page
+roam-cli get --today
+
+# Quick capture to journal
+printf '- Had a great idea' | roam-cli save --today --under '[[📽 Journaling]]'
+
+# Search your graph
+roam-cli search "meeting" "action item"
+```
+
+---
+
+## Configuration
+
+Set credentials via environment variables (recommended):
 
 ```bash
 export ROAM_API_TOKEN="<token>"
 export ROAM_API_GRAPH="<graph>"
 ```
 
-Optional:
+Or use flags for one-off commands:
 
 ```bash
-export ROAM_API_BASE_URL="https://api.roamresearch.com/api/graph"
-export ROAM_TIMEOUT_SECONDS="10"
-export TOPIC_NODE="<topic>"
+roam-cli --graph other-graph --token <token> get "Page Title"
 ```
 
-Validate setup before use:
+### Optional settings
+
+| Environment Variable | Flag | Default | Description |
+|---|---|---|---|
+| `ROAM_API_BASE_URL` | `--base-url` | `https://api.roamresearch.com/api/graph` | API endpoint |
+| `ROAM_TIMEOUT_SECONDS` | `--timeout` | `10` | Request timeout |
+
+### Get your API token
+
+1. Open Roam Research → Settings → Graph → API tokens
+2. Click "New API Token", give it a name, select read+write access
+3. Copy the token value
+
+### Recommended: 1Password CLI
 
 ```bash
-roam-cli status
-roam-cli status --json
-roam-cli status --json --jq '.ok'
+# .env file
+ROAM_API_TOKEN=op://vault/roam-api/token
+ROAM_API_GRAPH=op://vault/roam-api/graph
+
+# Run with credential injection
+op run --env-file=.env -- roam-cli status
 ```
 
 ---
 
 ## Commands
 
-### High-level commands
+### Daily Use Commands
 
-- `status` — check credentials and API connectivity
-- `get` — read page by title or block by uid
-- `search` — search blocks by terms
-- `q` — run raw datalog query
-- `save` — save markdown as a page (`--title`), daily page (`--to-daily-page` / `--today`), or under a parent block (`--parent`); `--under` finds-or-creates a child block by text
-- `journal` — read daily journaling blocks
-- `help` — show help or categorized examples (`help read`, `help write`, `help workflow`, `help all`)
+| Command | Purpose |
+|---------|---------|
+| `status` | Check credentials and API connectivity |
+| `get` | Read page by title, block by uid, or daily page by date |
+| `search` | Search blocks or pages by terms |
+| `save` | Save GFM markdown as a Roam page or daily page section |
+| `journal` | Get journaling blocks from Daily Notes |
+| `move` | Move a block to a page or section |
+| `help` | Show help for commands or topics |
 
-### Low-level commands
+### Low-level API Commands
 
-- `block create|update|delete|move|get|find`
-- `batch run` (native actions; `create-block` supports children and `attach-to`)
+| Command | Purpose |
+|---------|---------|
+| `q` | Execute raw Datalog query |
+| `block` | Low-level block APIs (create, update, delete, move, get, find) |
+| `batch` | Low-level batch actions API |
 
-### Output modes
+### Help Topics
 
-- `--json` — parseable JSON output
-- `--plain` — human-readable plain text
-- `--json` and `--plain` are mutually exclusive
-- `--jq` — filter JSON (supported on `status` and `q`, requires `--json`)
-
-### Pipeline support
-
-Commands that accept input (`save`, `block create`, `batch run`) read from stdin by default when `--file` is not given. No `--stdin` flag needed.
-
-### Date handling
-
-ISO dates (YYYY-MM-DD) are auto-resolved to Roam daily page titles wherever a page reference is expected:
-
-- `save --to-daily-page 2026-03-14` / `save --today` → saves to "March 14th, 2026" / today's daily page
-- `search --page 2026-03-14` → searches in "March 14th, 2026"
-- `block find --page 2026-03-14` → finds in "March 14th, 2026"
+```bash
+roam-cli help configuration     # Setup and credentials
+roam-cli help format           # GFM to Roam conversion rules
+roam-cli help writing-guide    # Choose the right write command
+roam-cli help datalog          # Datalog query reference
+roam-cli help exit-codes       # Exit codes for scripting
+roam-cli help read-examples    # Reading examples
+roam-cli help write-examples   # Writing examples
+roam-cli help workflow-examples # Common workflows
+```
 
 ---
 
-## Usage examples
+## Output Modes
+
+- `--json` — Parseable JSON output
+- `--plain` — Human-readable plain text
+- `--jq '<expr>'` — Filter JSON with jq expression (requires `--json`)
+
+`--json` and `--plain` are mutually exclusive.
+
+---
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | General error |
+| 2 | Authentication failure (401/403) |
+| 3 | Resource not found (404) |
+
+---
+
+## Usage Examples
+
+### Reading
 
 ```bash
-# status
-roam-cli status --plain
-roam-cli status --json --jq '.ok'
+# Today's daily page
+roam-cli get --today
+roam-cli get --today --json
 
-# read
+# Daily page by date
+roam-cli get --daily yesterday
+roam-cli get --daily 2026-03-14
+
+# Page by title
 roam-cli get "Page Title"
-roam-cli get "((block-uid))" --json
 
-# search
-roam-cli search term1 term2 --limit 20
-roam-cli search keyword --page 2026-03-14
+# Block by uid
+roam-cli get "((block-uid))"
 
-# query
-roam-cli q '[:find ?title :where [?e :node/title ?title]]' --json
+# Journaling blocks
+roam-cli journal --date today
+roam-cli journal --date yesterday --topic "Work Log"
+```
 
-# save markdown to a new page
+### Searching
+
+```bash
+# Search pages (default)
+roam-cli search "meeting" "action item" --limit 10
+
+# Search individual blocks
+roam-cli search keyword --type block --limit 20
+
+# Search in specific page or daily page
+roam-cli search keyword --page "Project"
+roam-cli search "TODO" --daily-topic "[[TODO]]"
+```
+
+### Saving Markdown
+
+```bash
+# Save to today's daily page
+printf '- journal entry' | roam-cli save --today
+
+# Save under a section (find-or-create)
+printf '- entry' | roam-cli save --today --under '[[📽 Journaling]]'
+
+# Save to a named page
 cat note.md | roam-cli save --title "New Page"
 
-# save to today's daily page
-echo "- entry" | roam-cli save --today
+# Save under a section in a named page
+printf '- new task' | roam-cli save --title "Project X" --under '[[TODO]]'
 
-# save to a specific daily page
+# Save to a specific daily page
 cat note.md | roam-cli save --to-daily-page 2026-03-14
 
-# save under a section in today's daily page (find-or-create)
-echo "- journal entry" | roam-cli save --today --under '[[📽 Journaling]]'
-
-# save under a section in a named page
-cat note.md | roam-cli save --title "Project Notes" --under '[[Tasks]]'
-
-# save under an existing parent block
+# Save under existing parent block (by UID)
 roam-cli save --parent <uid> --file ./note.md
 
-# journal
-roam-cli journal --date 2026-02-12
-roam-cli journal --date 2026-02-12 --topic "Work Log" --json
-
-# find block on a daily page
-roam-cli block find --text "[[📖 Daily Reading]]" --daily 2026-02-15
-roam-cli block find --text "[[📖 Daily Reading]]" --page 2026-02-15
-
-# create blocks (single, nested tree, attach-to)
-roam-cli block create --parent <uid> --text "hello"
-echo '{"text":"headline","children":[{"text":"child"}]}' \
-  | roam-cli block create --parent <uid>
-roam-cli block create --parent <uid> --file ./tree.json
-roam-cli block create --parent <page-uid> --attach-to "[[Section]]" --text "item"
-roam-cli block update --uid <uid> --text "updated"
-roam-cli block move --uid <uid> --parent <target-uid> --order last
-roam-cli block delete --uid <uid>
-
-# batch operations
-roam-cli batch run --file ./examples/actions.create-page-and-block.json
-echo '[...]' | roam-cli batch run
-
-# categorized help
-roam-cli help write
-roam-cli help workflow
-roam-cli help all
+# Get UID back for follow-up commands
+UID=$(printf '- item' | roam-cli save --today --under '[[Inbox]]' --plain)
+printf '- detail' | roam-cli save --parent "$UID"
 ```
+
+### Moving Blocks
+
+```bash
+# Move block to a page section
+roam-cli move --uid <block> --title "Project X" --under "[[Tasks]]"
+
+# Move to today's daily page section
+roam-cli move --uid <block> --today --under "[[Archive]]"
+
+# Move to daily page by date
+roam-cli move --uid <block> --daily yesterday
+```
+
+### Datalog Queries
+
+```bash
+# List all page titles
+roam-cli q '[:find ?title :where [?e :node/title ?title]]'
+
+# Find blocks containing text (case-insensitive)
+roam-cli q '[:find ?uid ?s
+ :where
+   [?b :block/string ?s]
+   [?b :block/uid ?uid]
+   [(clojure.string/includes? (clojure.string/lower-case ?s) "meeting")]]' --json
+
+# Find blocks matching regex
+roam-cli q '[:find (pull ?node [:block/uid :block/string])
+ :where
+   [(re-pattern "https?://x\\.com") ?pattern]
+   [?node :block/string ?text]
+   [(re-find ?pattern ?text)]]' --json
+
+# Pull full page tree with children
+roam-cli q '[:find (pull ?e [* {:block/children ...}])
+ :where [?e :node/title "My Page"]]' --json
+```
+
+### Low-level Block Operations
+
+```bash
+# Create single block
+roam-cli block create --parent <uid> --text "hello"
+
+# Create nested tree from JSON
+echo '{"text":"Root","children":[{"text":"Child"}]}' \
+  | roam-cli block create --parent <uid>
+
+# Create under a section (find-or-create)
+roam-cli block create --parent <page-uid> --attach-to "[[Section]]" --text "item"
+
+# Find block by text
+roam-cli block find --text "[[📖 Daily Reading]]" --today
+
+# Update block
+roam-cli block update --uid <uid> --text "updated"
+
+# Move block
+roam-cli block move --uid <uid> --parent <target-uid> --order last
+
+# Delete block
+roam-cli block delete --uid <uid>
+```
+
+### Batch Operations
+
+```bash
+# Run batch from file
+roam-cli batch run --file ./actions.json
+
+# Run batch from stdin
+echo '[...]' | roam-cli batch run
+```
+
+---
+
+## GFM Format Reference
+
+The `save` command converts GitHub Flavored Markdown to Roam blocks:
+
+| GFM element | Roam result |
+|---|---|
+| `#` (h1) | Skipped — page title comes from `--title` |
+| `##` – `###` | Block with heading attribute |
+| `- item` / `* item` | Nested child block |
+| Indented list items | Deeper child blocks |
+| `1. item` | Child block with marker preserved |
+| ` ```lang ... ``` ` | Single block with fenced code |
+| `> quote` | Block with `> ` prefix |
+| `---` / `***` | Discarded |
+| GFM table | `{{[[table]]}}` with row/cell children |
+| Consecutive text lines | Joined into one paragraph block |
+
+Inline formatting (bold, italic, code, links) passes through as-is.
 
 ---
 
 ## Install the Agent Skill
 
-This repository also ships an Agent Skill package under `skills/roamresearch`.
+This repository ships an Agent Skill package under `skills/roamresearch`.
 
 Install with:
 
@@ -182,27 +323,16 @@ After installation, your agent can load and use the `roamresearch` skill instruc
 
 ---
 
-## Recommended secret handling
+## Tips
 
-Use 1Password CLI to inject credentials at runtime:
+- Use `printf` instead of `--text` for content with `[[ ]]` or emoji — it preserves special characters
+- `save --plain` outputs the first saved block UID, useful for composing commands
+- Build trees in one call with JSON input instead of sequential `block create` calls
+- Use `roam-cli help <topic>` for detailed documentation on specific topics
 
-- https://developer.1password.com/docs/service-accounts/use-with-1password-cli
+### 1Password shell plugin
 
-### Path A: Simple op run (existing)
-
-Inject credentials from environment variables on each invocation:
-
-```bash
-export ROAM_API_TOKEN="op://Private/Roam Research/token"
-export ROAM_API_GRAPH="op://Private/Roam Research/graph"
-
-op run -- roam-cli status
-op run -- roam-cli get "Page Title"
-```
-
-### Path B: 1Password Shell Plugin (recommended)
-
-The shell plugin lets 1Password CLI automatically inject credentials when you run `roam-cli`, without managing `.env` files.
+The shell plugin lets 1Password CLI automatically inject credentials when you run `roam-cli`.
 
 Prerequisites:
 - [1Password CLI](https://1password.com/downloads/command-line) installed
