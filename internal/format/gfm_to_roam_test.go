@@ -44,3 +44,31 @@ func TestGFMToBatchActions_CodeFenceInsideListItem(t *testing.T) {
 		t.Fatalf("expected code block parent %q, got %q", firstUID, parentUID)
 	}
 }
+
+func TestGFMToBatchActions_CodeFenceKeepsFollowingListItems(t *testing.T) {
+	md := "- **Section A**\n    - ```python\ncode here```\n    - item after code block\n- **Section B**\n    - should appear as next sibling\n"
+	actions := GFMToBatchActions(md, "pageuid")
+	got := []string{}
+	for _, action := range actions {
+		block, ok := action["block"].(map[string]any)
+		if !ok {
+			continue
+		}
+		if s, ok := block["string"].(string); ok {
+			got = append(got, s)
+		}
+	}
+	want := []string{"**Section A**", "```python\ncode here\n```", "item after code block", "**Section B**", "should appear as next sibling"}
+	for _, needle := range want {
+		found := false
+		for _, s := range got {
+			if strings.Contains(s, needle) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("expected to find %q in actions, got %#v", needle, got)
+		}
+	}
+}

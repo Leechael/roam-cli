@@ -25,10 +25,20 @@ var (
 func collectFencedCode(lines []string, start int, opener string) (string, int) {
 	codeLines := []string{opener}
 	for i := start; i < len(lines); i++ {
-		codeLines = append(codeLines, lines[i])
-		if strings.HasPrefix(strings.TrimSpace(lines[i]), "```") {
+		line := lines[i]
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "```") && strings.TrimSpace(trimmed[3:]) == "" {
+			codeLines = append(codeLines, line)
 			return strings.Join(codeLines, "\n"), i
 		}
+		if idx := strings.Index(line, "```"); idx >= 0 {
+			if prefix := line[:idx]; prefix != "" {
+				codeLines = append(codeLines, prefix)
+			}
+			codeLines = append(codeLines, "```")
+			return strings.Join(codeLines, "\n"), i
+		}
+		codeLines = append(codeLines, line)
 	}
 	return strings.Join(codeLines, "\n"), len(lines) - 1
 }
