@@ -82,6 +82,7 @@ func newRootCmd() *cobra.Command {
 	addToGroup(root, "daily", newSearchCmd())
 	addToGroup(root, "daily", newJournalCmd())
 	addToGroup(root, "daily", newMoveCmd())
+	addToGroup(root, "daily", newPageCmd())
 	addToGroup(root, "daily", newOnePasswordCmd())
 	addToGroup(root, "daily", newStatusCmd())
 

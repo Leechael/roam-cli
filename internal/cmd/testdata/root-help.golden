@@ -9,6 +9,7 @@ Daily Use:
   journal      Get journaling blocks from Daily Notes
   move         Move a block to a page or section
   onepassword  Manage 1Password shell plugin integration
+  page         Page operations
   save         Save GFM markdown as a Roam page or daily page section
   search       Search blocks or pages by terms
   status       Check roam-cli credential and API connectivity status

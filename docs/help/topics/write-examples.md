@@ -31,6 +31,12 @@ Examples for saving GFM markdown and creating content.
       | roam-cli block create --parent UID_HERE
     roam-cli block create --parent UID_HERE --attach-to "[[Section]]" --file tree.json
 
+## Page operations
+
+    roam-cli page clear "Project X"
+    roam-cli page delete "Project X"
+    roam-cli page clear --today
+
 ## Low-level: batch operations
 
     roam-cli batch run --file ./actions.json

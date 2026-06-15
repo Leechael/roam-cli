@@ -100,6 +100,7 @@ op run --env-file=.env -- roam-cli status
 | `get` | Read page by title, block by uid, or daily page by date |
 | `search` | Search blocks or pages by terms |
 | `save` | Save GFM markdown as a Roam page or daily page section |
+| `page` | Clear or delete a page by title or date |
 | `journal` | Get journaling blocks from Daily Notes |
 | `move` | Move a block to a page or section |
 | `help` | Show help for commands or topics |
@@ -209,6 +210,10 @@ cat note.md | roam-cli save --to-daily-page 2026-03-14
 
 # Save under existing parent block (by UID)
 roam-cli save --parent <uid> --file ./note.md
+
+# Page operations
+roam-cli page clear "Project X"
+roam-cli page delete "Project X"
 
 # Get UID back for follow-up commands
 UID=$(printf '- item' | roam-cli save --today --under '[[Inbox]]' --plain)

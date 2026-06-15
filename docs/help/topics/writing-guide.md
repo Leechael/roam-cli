@@ -9,6 +9,8 @@ roam-cli has two layers of write commands:
 - **save** -- high-level, takes markdown, resolves targets by name/date. Use this
   for daily notes, journaling, article saves, and most content creation.
   Add `--replace` when you want to overwrite an existing page.
+- **page clear / page delete** -- clear a page's content or delete a page by
+  title/date in one step.
 - **block create** -- low-level, takes JSON trees or single text, requires explicit
   parent UID. Use this for batch imports, precise block placement, or when you
   need control over UIDs and ordering.
@@ -44,6 +46,19 @@ cat note.md | roam-cli save --title "Project X" --replace
 
 # Replace today's daily page
 cat note.md | roam-cli save --today --replace
+```
+
+### page (clear or delete)
+
+```bash
+# Clear all content from a page
+roam-cli page clear "Project X"
+
+# Delete a page
+roam-cli page delete "Project X"
+
+# Clear today's daily page
+roam-cli page clear --today
 ```
 
 ### block create (low-level)
@@ -93,6 +108,8 @@ roam-cli move --uid <existing-block> --today --under '[[📽 Journaling]]'
   name.
 - `save` to a page appends by default. Use `--replace` to clear the existing
   page content first.
+- Use `page clear` to clear page content without deleting the page, or
+  `page delete` to remove the page itself.
 - `block create --parent` requires a UID. If you do not have one, use `save` with
   `--title`, `--today`, or `--to-daily-page` instead.
 - `save --plain` outputs the target UID (page UID in page mode, parent UID in
