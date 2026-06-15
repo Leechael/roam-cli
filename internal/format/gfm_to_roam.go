@@ -22,6 +22,17 @@ var (
 	listRe    = regexp.MustCompile(`^(\s*)([-*+]|\d+\.)\s+(.+)$`)
 )
 
+func collectFencedCode(lines []string, start int, opener string) (string, int) {
+	codeLines := []string{opener}
+	for i := start; i < len(lines); i++ {
+		codeLines = append(codeLines, lines[i])
+		if strings.HasPrefix(strings.TrimSpace(lines[i]), "```") {
+			return strings.Join(codeLines, "\n"), i
+		}
+	}
+	return strings.Join(codeLines, "\n"), len(lines) - 1
+}
+
 func GFMToBatchActions(raw, pageUID string) []map[string]any {
 	lines := strings.Split(raw, "\n")
 	actions := []map[string]any{}
@@ -55,17 +66,16 @@ func GFMToBatchActions(raw, pageUID string) []map[string]any {
 
 		if strings.HasPrefix(trimmed, "```") {
 			flushParagraph(&paragraph)
-			resetList()
-			lang := strings.TrimPrefix(trimmed, "```")
-			codeLines := []string{}
-			for i = i + 1; i < len(lines); i++ {
-				if strings.TrimSpace(lines[i]) == "```" {
-					break
-				}
-				codeLines = append(codeLines, lines[i])
+			if len(listStack) == 0 {
+				resetList()
 			}
-			codeText := "```" + lang + "\n" + strings.Join(codeLines, "\n") + "\n```"
-			actions = append(actions, client.CreateBlockAction(codeText, currentParent(), "", "last", true))
+			parentUID := currentParent()
+			if len(listStack) > 0 {
+				parentUID = listStack[len(listStack)-1].uid
+			}
+			codeText, end := collectFencedCode(lines, i+1, trimmed)
+			actions = append(actions, client.CreateBlockAction(codeText, parentUID, "", "last", true))
+			i = end
 			continue
 		}
 
@@ -140,6 +150,12 @@ func GFMToBatchActions(raw, pageUID string) []map[string]any {
 			parentUID := currentParent()
 			if len(listStack) > 0 {
 				parentUID = listStack[len(listStack)-1].uid
+			}
+			if strings.HasPrefix(text, "```") {
+				codeText, end := collectFencedCode(lines, i+1, text)
+				actions = append(actions, client.CreateBlockAction(codeText, parentUID, "", "last", true))
+				i = end
+				continue
 			}
 			action := client.CreateBlockAction(text, parentUID, "", "last", true)
 			actions = append(actions, action)
