@@ -190,11 +190,14 @@ Use 1Password CLI to inject credentials at runtime:
 
 ### Path A: Simple op run (existing)
 
-Inject credentials from a `.env` file on each invocation:
+Inject credentials from environment variables on each invocation:
 
 ```bash
-op run --env-file=.env -- roam-cli status
-op run --env-file=.env -- roam-cli get "Page Title"
+export ROAM_API_TOKEN="op://Private/Roam Research/token"
+export ROAM_API_GRAPH="op://Private/Roam Research/graph"
+
+op run -- roam-cli status
+op run -- roam-cli get "Page Title"
 ```
 
 ### Path B: 1Password Shell Plugin (recommended)
