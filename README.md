@@ -80,12 +80,15 @@ roam-cli --graph other-graph --token <token> get "Page Title"
 ### Recommended: 1Password CLI
 
 ```bash
-# .env file
+# Keep the env file outside the repository.
+mkdir -p ~/.config/roam-cli
+cat > ~/.config/roam-cli/op.env <<'EOF'
 ROAM_API_TOKEN=op://vault/roam-api/token
 ROAM_API_GRAPH=op://vault/roam-api/graph
+EOF
 
 # Run with credential injection
-op run --env-file=.env -- roam-cli status
+op run --env-file ~/.config/roam-cli/op.env -- roam-cli status
 ```
 
 ---
@@ -216,7 +219,7 @@ roam-cli save --parent <uid> --file ./note.md
 roam-cli page clear "Project X"
 roam-cli page delete "Project X"
 
-# Get UID back for follow-up commands
+# Get the saved block UID back for follow-up commands
 UID=$(printf '- item' | roam-cli save --today --under '[[Inbox]]' --plain)
 printf '- detail' | roam-cli save --parent "$UID"
 ```

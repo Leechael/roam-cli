@@ -75,6 +75,14 @@ Optionally use --under to move into a specific section (find-or-create).`,
 				return err
 			}
 
+			source, err := c.GetBlockByUID(uid)
+			if err != nil {
+				return err
+			}
+			if source == nil {
+				return fmt.Errorf("not found: %s", uid)
+			}
+
 			// Resolve target to UID
 			target := parentUID
 			if daily != "" {

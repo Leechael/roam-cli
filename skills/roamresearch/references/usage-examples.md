@@ -77,10 +77,10 @@ roam-cli save --title "Project X" --under '[[Tasks]]' --file ./tasks.md
 ### Compose: save then follow up
 
 ```bash
-# Get target UID back
+# Get saved block UID back
 UID=$(printf '%s\n' '- headline' | roam-cli save --today --under '[[📽 Journaling]]' --plain)
 
-# Add more under the same target
+# Add more under the saved block
 printf '%s\n' '- detail 1' '- detail 2' | roam-cli save --parent "$UID"
 ```
 

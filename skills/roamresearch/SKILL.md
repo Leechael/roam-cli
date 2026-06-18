@@ -181,13 +181,13 @@ echo '[...]' | roam-cli batch run
 
 ### Composing commands with `--plain`
 
-`save --plain` outputs the target UID (page or parent block) for follow-up commands:
+`save --plain` outputs the first saved block UID for follow-up commands:
 
 ```bash
 # Save and get UID back
 UID=$(printf '%s\n' '- item' | roam-cli save --today --under '[[Inbox]]' --plain)
 
-# Add more content under the same target
+# Add more content under the saved block
 printf '%s\n' '- detail' | roam-cli save --parent "$UID"
 
 # Or move another block there

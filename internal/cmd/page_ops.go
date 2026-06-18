@@ -71,7 +71,7 @@ func deletePageByTitle(c *client.Client, title string) (string, map[string]any, 
 	if strings.TrimSpace(pageUID) == "" {
 		return "", nil, fmt.Errorf("not found: %s", title)
 	}
-	resp, err := c.Write(client.DeleteBlockAction(pageUID))
+	resp, err := c.Write(client.DeletePageAction(pageUID))
 	if err != nil {
 		return "", nil, err
 	}

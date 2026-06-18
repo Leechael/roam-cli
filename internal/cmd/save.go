@@ -34,6 +34,23 @@ func validateSaveTarget(title, parentUID, dailyPage string, today bool) error {
 	return nil
 }
 
+func firstCreatedBlockUID(actions []map[string]any) string {
+	for _, action := range actions {
+		if action["action"] != "create-block" {
+			continue
+		}
+		block, ok := action["block"].(map[string]any)
+		if !ok {
+			continue
+		}
+		uid, ok := block["uid"].(string)
+		if ok && strings.TrimSpace(uid) != "" {
+			return uid
+		}
+	}
+	return ""
+}
+
 func newSaveCmd() *cobra.Command {
 	var title string
 	var parentUID string
@@ -157,7 +174,12 @@ See "roam-cli help writing-guide" for command selection patterns and
 				}
 			}
 
-			actions = append(actions, format.GFMToBatchActions(raw, target)...)
+			contentActions := format.GFMToBatchActions(raw, target)
+			plainUID := firstCreatedBlockUID(contentActions)
+			if plainUID == "" {
+				plainUID = target
+			}
+			actions = append(actions, contentActions...)
 
 			resp, err := c.BatchActions(actions)
 			if err != nil {
@@ -170,6 +192,7 @@ See "roam-cli help writing-guide" for command selection patterns and
 				"page_uid":       pageUID,
 				"parent_uid":     parentUID,
 				"target_uid":     target,
+				"created_uid":    plainUID,
 				"actions":        len(actions),
 				"cleared_blocks": clearedBlocks,
 				"response":       resp,
@@ -178,7 +201,7 @@ See "roam-cli help writing-guide" for command selection patterns and
 				return prettyPrint(payload)
 			}
 			if asPlain {
-				fmt.Println(target)
+				fmt.Println(plainUID)
 				return nil
 			}
 			if mode == "page" {

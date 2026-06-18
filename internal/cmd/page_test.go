@@ -56,6 +56,60 @@ func readJSONBody(t *testing.T, r *http.Request) map[string]any {
 	return body
 }
 
+func TestSavePlainOutputsCreatedBlockUID(t *testing.T) {
+	var sectionUID string
+	var contentUID string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body := readJSONBody(t, r)
+		switch {
+		case r.URL.Path == "/api/graph/test-graph/q":
+			_, _ = w.Write([]byte(`{"result":[]}`))
+		case r.URL.Path == "/api/graph/test-graph/write":
+			actions := body["actions"].([]any)
+			if len(actions) != 3 {
+				t.Fatalf("expected create-page, section, and content actions, got %d", len(actions))
+			}
+			section := actions[1].(map[string]any)["block"].(map[string]any)
+			content := actions[2].(map[string]any)["block"].(map[string]any)
+			sectionUID = section["uid"].(string)
+			contentUID = content["uid"].(string)
+			if content["string"] != "plain parent" {
+				t.Fatalf("expected plain parent content, got %#v", content["string"])
+			}
+			_, _ = w.Write([]byte(`{"ok":true}`))
+		default:
+			t.Fatalf("unexpected request: %s %s body=%v", r.Method, r.URL.Path, body)
+		}
+	}))
+	defer srv.Close()
+	setTestAPIEnv(t, srv)
+
+	root := newRootCmd()
+	root.SetArgs([]string{"save", "--title", "Demo Page", "--under", "[[Inbox]]", "--plain"})
+	oldStdin := os.Stdin
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdin = r
+	defer func() { os.Stdin = oldStdin }()
+	_, _ = w.Write([]byte("- plain parent\n"))
+	_ = w.Close()
+
+	out := captureStdout(t, func() {
+		if err := root.Execute(); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+	got := strings.TrimSpace(out)
+	if got == "" || got != contentUID {
+		t.Fatalf("save --plain output = %q, want content UID %q", got, contentUID)
+	}
+	if got == sectionUID {
+		t.Fatalf("save --plain returned section UID %q instead of content UID", got)
+	}
+}
+
 func TestSaveReplace_ClearsExistingPage(t *testing.T) {
 	call := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -125,6 +179,37 @@ func TestSaveReplace_ClearsExistingPage(t *testing.T) {
 	}
 }
 
+func TestMoveUnderDoesNotCreateSectionWhenSourceMissing(t *testing.T) {
+	writeCalls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body := readJSONBody(t, r)
+		switch {
+		case r.URL.Path == "/api/graph/test-graph/q" && strings.Contains(body["query"].(string), `:block/uid "missing-uid"`):
+			_, _ = w.Write([]byte(`{"result":[]}`))
+		case r.URL.Path == "/api/graph/test-graph/write":
+			writeCalls++
+			t.Fatalf("unexpected write before source block validation: %#v", body)
+		default:
+			t.Fatalf("unexpected request: %s %s body=%v", r.Method, r.URL.Path, body)
+		}
+	}))
+	defer srv.Close()
+	setTestAPIEnv(t, srv)
+
+	root := newRootCmd()
+	root.SetArgs([]string{"move", "--uid", "missing-uid", "--title", "Demo Page", "--under", "[[Should Not Exist]]"})
+	err := root.Execute()
+	if err == nil {
+		t.Fatal("expected missing source error")
+	}
+	if !strings.Contains(err.Error(), "not found: missing-uid") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if writeCalls != 0 {
+		t.Fatalf("expected no write calls, got %d", writeCalls)
+	}
+}
+
 func TestPageClearAndDelete(t *testing.T) {
 	tests := []struct {
 		name string
@@ -168,12 +253,12 @@ func TestPageClearAndDelete(t *testing.T) {
 							t.Fatalf("expected child-uid, got %#v", block["uid"])
 						}
 					} else {
-						if body["action"] != "delete-block" {
-							t.Fatalf("expected delete-block request, got %#v", body["action"])
+						if body["action"] != "delete-page" {
+							t.Fatalf("expected delete-page request, got %#v", body["action"])
 						}
-						block := body["block"].(map[string]any)
-						if block["uid"] != "page-uid" {
-							t.Fatalf("expected page-uid, got %#v", block["uid"])
+						page := body["page"].(map[string]any)
+						if page["uid"] != "page-uid" {
+							t.Fatalf("expected page-uid, got %#v", page["uid"])
 						}
 					}
 					_, _ = w.Write([]byte(`{"ok":true}`))

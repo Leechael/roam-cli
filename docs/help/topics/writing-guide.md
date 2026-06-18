@@ -88,10 +88,10 @@ printf '%s\n' '- {{[[TODO]]}} Buy groceries' '- {{[[TODO]]}} Call dentist' | roa
 
 ### Composing commands
 
-save --plain outputs the target UID, which can feed into subsequent commands:
+save --plain outputs the first saved block UID, which can feed into subsequent commands:
 
 ```bash
-# Save content, then add more under the same target
+# Save content, then add more under the saved block
 UID=$(printf '%s\n' '- headline' | roam-cli save --today --under '[[📽 Journaling]]' --plain)
 printf '%s\n' '- detail 1' '- detail 2' | roam-cli save --parent "$UID"
 
@@ -112,8 +112,8 @@ roam-cli move --uid <existing-block> --today --under '[[📽 Journaling]]'
   `page delete` to remove the page itself.
 - `block create --parent` requires a UID. If you do not have one, use `save` with
   `--title`, `--today`, or `--to-daily-page` instead.
-- `save --plain` outputs the target UID (page UID in page mode, parent UID in
-  parent mode). This is the UID content was written under, not individual block UIDs.
+- `save --plain` outputs the first saved block UID. If the input creates no
+  blocks, it falls back to the target UID.
 
 ## Anti-patterns
 
