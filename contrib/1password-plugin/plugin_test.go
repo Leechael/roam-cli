@@ -51,6 +51,9 @@ func TestNeedsAuthReturnsFalseForHelp(t *testing.T) {
 		{"--help", []string{"--help"}},
 		{"help subcommand", []string{"help"}},
 		{"--version", []string{"--version"}},
+		{"completion command", []string{"completion", "zsh"}},
+		{"cobra shell completion", []string{"__complete", "get", ""}},
+		{"cobra shell completion no descriptions", []string{"__completeNoDesc", "get", ""}},
 	}
 
 	for _, tt := range tests {

@@ -45,7 +45,8 @@ func mockOpLookup() func() {
 }
 
 func TestOnePasswordInstall_MissingSourceBinary(t *testing.T) {
-	setupTestPluginDir(t)
+	_, cleanup := setupTestPluginDir(t)
+	defer cleanup()
 	defer mockOpLookup()()
 
 	cmd := newOnePasswordCmd()
@@ -203,9 +204,55 @@ func TestOnePasswordInstall_WithForceOverwrites(t *testing.T) {
 	}
 }
 
+func TestOnePasswordInstall_WithForceRejectsSymlinkDestination(t *testing.T) {
+	_, cleanup := setupTestPluginDir(t)
+	defer cleanup()
+	defer mockOpLookup()()
+
+	targetPath := filepath.Join(t.TempDir(), "target")
+	if err := os.WriteFile(targetPath, []byte("target"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	destPath := filepath.Join(testOPPluginDir, "roamresearch")
+	if err := os.Symlink(targetPath, destPath); err != nil {
+		t.Fatal(err)
+	}
+
+	srcDir := t.TempDir()
+	srcPath := writeTempPluginBinary(t, srcDir, "roamresearch")
+
+	installCmd := newOnePasswordCmd().Commands()[0]
+	opOpts.from = srcPath
+	opOpts.force = true
+
+	err := installCmd.RunE(installCmd, nil)
+	if err == nil {
+		t.Fatal("expected error for symlink destination")
+	}
+	if !strings.Contains(err.Error(), "symlink") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
 func TestResolvePluginSource_WithFromFlag(t *testing.T) {
 	dir := t.TempDir()
 	path := writeTempPluginBinary(t, dir, "roamresearch")
+
+	result, err := resolvePluginSource(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != path {
+		t.Errorf("expected %q, got %q", path, result)
+	}
+}
+
+func TestResolvePluginSource_AcceptsAnyExecuteBit(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "roamresearch")
+	if err := os.WriteFile(path, []byte("#!/bin/sh\necho mock-plugin\n"), 0010); err != nil {
+		t.Fatal(err)
+	}
 
 	result, err := resolvePluginSource(path)
 	if err != nil {

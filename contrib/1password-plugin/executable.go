@@ -16,6 +16,9 @@ func RoamCLI() schema.Executable {
 		NeedsAuth: needsauth.IfAll(
 			needsauth.NotForHelpOrVersion(),
 			needsauth.NotWithoutArgs(),
+			needsauth.NotWhenContainsArgs("completion"),
+			needsauth.NotWhenContainsArgs("__complete"),
+			needsauth.NotWhenContainsArgs("__completeNoDesc"),
 		),
 		Uses: []schema.CredentialUsage{
 			{Name: credname.APIToken},

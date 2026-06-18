@@ -83,7 +83,7 @@ func resolvePluginSource(fromFlag string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("--from path %q does not exist", fromFlag)
 		}
-		if info.Mode()&0o100 == 0 {
+		if info.Mode()&0o111 == 0 {
 			return "", fmt.Errorf("--from path %q is not executable", fromFlag)
 		}
 		return fromFlag, nil
@@ -93,7 +93,7 @@ func resolvePluginSource(fromFlag string) (string, error) {
 	exe, err := os.Executable()
 	if err == nil {
 		candidate := filepath.Join(filepath.Dir(exe), "roamresearch")
-		if info, err := os.Stat(candidate); err == nil && info.Mode().IsRegular() && info.Mode()&0o100 != 0 {
+		if info, err := os.Stat(candidate); err == nil && info.Mode().IsRegular() && info.Mode()&0o111 != 0 {
 			return candidate, nil
 		}
 	}
@@ -127,10 +127,8 @@ func runOnePasswordInstall(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if info, err := os.Stat(dest); err == nil && !opOpts.force {
-		if info.Mode().IsRegular() {
-			return fmt.Errorf("%s already exists; use --force to overwrite", dest)
-		}
+	if err := validatePluginDestination(dest, opOpts.force); err != nil {
+		return err
 	}
 
 	if err := copyFile(src, dest); err != nil {
@@ -161,6 +159,26 @@ func ensureLocalPluginDirs(destDir string) error {
 		}
 	}
 
+	return nil
+}
+
+func validatePluginDestination(dest string, force bool) error {
+	info, err := os.Lstat(dest)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("cannot inspect %s: %w", dest, err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("%s is a symlink; refusing to overwrite", dest)
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("%s is not a regular file", dest)
+	}
+	if !force {
+		return fmt.Errorf("%s already exists; use --force to overwrite", dest)
+	}
 	return nil
 }
 
