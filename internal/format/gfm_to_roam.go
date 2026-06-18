@@ -22,20 +22,33 @@ var (
 	listRe    = regexp.MustCompile(`^(\s*)([-*+]|\d+\.)\s+(.+)$`)
 )
 
+func countOpeningBackticks(opener string) int {
+	count := 0
+	for _, r := range opener {
+		if r != '`' {
+			break
+		}
+		count++
+	}
+	return count
+}
+
+func isClosingBacktickFence(line string, fenceLen int) bool {
+	trimmed := strings.TrimSpace(line)
+	count := countOpeningBackticks(trimmed)
+	if count < fenceLen {
+		return false
+	}
+	return strings.TrimSpace(trimmed[count:]) == ""
+}
+
 func collectFencedCode(lines []string, start int, opener string) (string, int) {
 	codeLines := []string{opener}
+	fenceLen := countOpeningBackticks(opener)
 	for i := start; i < len(lines); i++ {
 		line := lines[i]
-		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "```") && strings.TrimSpace(trimmed[3:]) == "" {
-			codeLines = append(codeLines, line)
-			return strings.Join(codeLines, "\n"), i
-		}
-		if idx := strings.Index(line, "```"); idx >= 0 {
-			if prefix := line[:idx]; prefix != "" {
-				codeLines = append(codeLines, prefix)
-			}
-			codeLines = append(codeLines, "```")
+		if isClosingBacktickFence(line, fenceLen) {
+			codeLines = append(codeLines, strings.TrimSpace(line))
 			return strings.Join(codeLines, "\n"), i
 		}
 		codeLines = append(codeLines, line)

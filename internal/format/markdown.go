@@ -190,6 +190,18 @@ func indentBlock(text string, depth int) string {
 	return strings.Join(parts, "\n")
 }
 
+func shouldSkipMarkdownIndent(block map[string]any) bool {
+	return getInt(block, ":block/heading") > 0 || isCodeBlock(block)
+}
+
+func formatIndentedBlockText(block map[string]any, all []map[string]any, depth int) string {
+	text := formatBlockText(block, all)
+	if shouldSkipMarkdownIndent(block) {
+		return text
+	}
+	return indentBlock(text, depth)
+}
+
 func appendFormattedBlock(lines *[]string, block map[string]any, all []map[string]any, depth int) {
 	if isTableBlock(block) {
 		text := formatTable(block, all)
@@ -200,9 +212,9 @@ func appendFormattedBlock(lines *[]string, block map[string]any, all []map[strin
 		return
 	}
 
-	text := formatBlockText(block, all)
+	text := formatIndentedBlockText(block, all, depth)
 	if text != "" {
-		*lines = append(*lines, indentBlock(text, depth))
+		*lines = append(*lines, text)
 		*lines = append(*lines, "")
 	}
 

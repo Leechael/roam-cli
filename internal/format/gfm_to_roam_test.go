@@ -46,7 +46,7 @@ func TestGFMToBatchActions_CodeFenceInsideListItem(t *testing.T) {
 }
 
 func TestGFMToBatchActions_CodeFenceKeepsFollowingListItems(t *testing.T) {
-	md := "- **Section A**\n    - ```python\ncode here```\n    - item after code block\n- **Section B**\n    - should appear as next sibling\n"
+	md := "- **Section A**\n    - ```python\ncode here\n```\n    - item after code block\n- **Section B**\n    - should appear as next sibling\n"
 	actions := GFMToBatchActions(md, "pageuid")
 	got := []string{}
 	for _, action := range actions {
@@ -70,5 +70,21 @@ func TestGFMToBatchActions_CodeFenceKeepsFollowingListItems(t *testing.T) {
 		if !found {
 			t.Fatalf("expected to find %q in actions, got %#v", needle, got)
 		}
+	}
+}
+
+func TestGFMToBatchActions_CodeFenceContentWithBacktickPrefixDoesNotCloseFence(t *testing.T) {
+	md := "````markdown\n```python\nfmt.Println(\"hello\")\n````\n"
+	actions := GFMToBatchActions(md, "pageuid")
+	if len(actions) != 1 {
+		t.Fatalf("expected 1 action, got %d: %#v", len(actions), actions)
+	}
+	codeBlock := actions[0]["block"].(map[string]any)
+	codeText := codeBlock["string"].(string)
+	if !strings.Contains(codeText, "```python\nfmt.Println") {
+		t.Fatalf("expected inner fence-like line to stay in code block, got: %q", codeText)
+	}
+	if !strings.HasSuffix(codeText, "\n````") {
+		t.Fatalf("expected four-backtick fence to close code block, got: %q", codeText)
 	}
 }

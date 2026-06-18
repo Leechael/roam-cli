@@ -199,7 +199,8 @@ printf '- entry' | roam-cli save --today --under '[[📽 Journaling]]'
 # Save to a named page
 cat note.md | roam-cli save --title "New Page"
 
-# Replace a named page
+# Replace a named page: clear existing page blocks first, then write note.md.
+# Without --replace, save appends new blocks to the page.
 cat note.md | roam-cli save --title "Project X" --replace
 
 # Save under a section in a named page
