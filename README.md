@@ -188,9 +188,62 @@ Use 1Password CLI to inject credentials at runtime:
 
 - https://developer.1password.com/docs/service-accounts/use-with-1password-cli
 
-Example:
+### Path A: Simple op run (existing)
+
+Inject credentials from environment variables on each invocation:
 
 ```bash
-op run --env-file=.env -- roam-cli status
-op run --env-file=.env -- roam-cli get "Page Title"
+export ROAM_API_TOKEN="op://Private/Roam Research/token"
+export ROAM_API_GRAPH="op://Private/Roam Research/graph"
+
+op run -- roam-cli status
+op run -- roam-cli get "Page Title"
+```
+
+### Path B: 1Password Shell Plugin (recommended)
+
+The shell plugin lets 1Password CLI automatically inject credentials when you run `roam-cli`, without managing `.env` files.
+
+Prerequisites:
+- [1Password CLI](https://1password.com/downloads/command-line) installed
+- A 1Password item with fields matching the environment variables below
+
+Install the local plugin:
+
+```bash
+# Install the 1Password shell plugin binary.
+roam-cli onepassword install
+
+# Let 1Password create the shell wrapper.
+op plugin init roam-cli
+
+# Reload shell plugin aliases.
+source ~/.config/op/plugins.sh
+
+# Run normally.
+roam-cli status
+```
+
+> `op plugin init roam-cli` only works after `roam-cli onepassword install` has copied the local plugin binary to `~/.op/plugins/local/roamresearch`.
+
+#### Release archives
+
+Starting from the release that includes this feature, each release archive contains both `roam-cli` and `roamresearch` binaries. Extract both to your `PATH` before running `roam-cli onepassword install`.
+
+#### Developer flow
+
+```bash
+make build op-plugin-build
+./bin/roam-cli onepassword install --from ./bin/roamresearch --force
+```
+
+#### Manual shell wrapper
+
+If you prefer not to use `op plugin init`, add this to your shell rc file:
+
+```bash
+roam-cli() {
+  op plugin run -- roam-cli "$@"
+}
+export OP_PLUGIN_ALIASES_SOURCED=1
 ```

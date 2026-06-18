@@ -5,9 +5,14 @@ OUT_DIR := dist
 CMD := ./cmd/roam-cli
 GOFLAGS ?= -buildvcs=false
 
+OP_PLUGIN_NAME := roamresearch
+OP_PLUGIN_DIR := contrib/1password-plugin
+OP_PLUGIN_BIN := $(BIN_DIR)/$(OP_PLUGIN_NAME)
+
 export GOFLAGS
 
 .PHONY: tidy fmt test bdd-test ci build run install clean cross-build help
+.PHONY: op-plugin-test op-plugin-build op-plugin-install-local
 
 help:
 	@echo "Targets:"
@@ -21,6 +26,10 @@ help:
 	@echo "  make install      - install binary to GOPATH/bin"
 	@echo "  make clean        - remove build artifacts"
 	@echo "  make cross-build  - build darwin/linux amd64/arm64 binaries"
+	@echo "  make op-plugin-test        - run 1Password plugin tests"
+	@echo "  make op-plugin-build       - build 1Password plugin binary"
+	@echo "  make op-plugin-install-local - build and install plugin locally"
+
 
 tidy:
 	go mod tidy
@@ -40,6 +49,7 @@ ci:
 	go vet ./...
 	go test ./... -count=1
 	go test -tags=bdd ./tests/bdd/... -count=1
+	cd $(OP_PLUGIN_DIR) && go test ./... -count=1
 	mkdir -p $(BIN_DIR)
 	go build -v -o $(BIN_PATH) $(CMD)
 
@@ -55,6 +65,19 @@ install:
 
 clean:
 	rm -rf $(OUT_DIR) $(BIN_DIR)
+
+op-plugin-test:
+	cd $(OP_PLUGIN_DIR) && go test ./... -count=1
+
+op-plugin-build:
+	mkdir -p $(BIN_DIR)
+	cd $(OP_PLUGIN_DIR) && go build -o ../../$(OP_PLUGIN_BIN) .
+
+op-plugin-install-local: op-plugin-build
+	mkdir -p ~/.op/plugins/local
+	chmod 700 ~/.op ~/.op/plugins ~/.op/plugins/local
+	cp $(OP_PLUGIN_BIN) ~/.op/plugins/local/$(OP_PLUGIN_NAME)
+	chmod 755 ~/.op/plugins/local/$(OP_PLUGIN_NAME)
 
 cross-build: clean
 	mkdir -p $(OUT_DIR)
