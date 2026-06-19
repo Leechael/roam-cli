@@ -60,6 +60,15 @@ func DeleteBlockAction(uid string) map[string]any {
 	}
 }
 
+func DeletePageAction(uid string) map[string]any {
+	return map[string]any{
+		"action": "delete-page",
+		"page": map[string]any{
+			"uid": uid,
+		},
+	}
+}
+
 func MoveBlockAction(uid, parentUID, order string) map[string]any {
 	if order == "" {
 		order = "last"

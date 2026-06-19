@@ -178,6 +178,51 @@ func formatTable(block map[string]any, all []map[string]any) string {
 	return strings.Join(lines, "\n")
 }
 
+func indentBlock(text string, depth int) string {
+	if depth <= 0 || text == "" {
+		return text
+	}
+	prefix := strings.Repeat("  ", depth)
+	parts := strings.Split(text, "\n")
+	for i := range parts {
+		parts[i] = prefix + parts[i]
+	}
+	return strings.Join(parts, "\n")
+}
+
+func shouldSkipMarkdownIndent(block map[string]any) bool {
+	return getInt(block, ":block/heading") > 0 || isCodeBlock(block)
+}
+
+func formatIndentedBlockText(block map[string]any, all []map[string]any, depth int) string {
+	text := formatBlockText(block, all)
+	if shouldSkipMarkdownIndent(block) {
+		return text
+	}
+	return indentBlock(text, depth)
+}
+
+func appendFormattedBlock(lines *[]string, block map[string]any, all []map[string]any, depth int) {
+	if isTableBlock(block) {
+		text := formatTable(block, all)
+		if text != "" {
+			*lines = append(*lines, indentBlock(text, depth))
+			*lines = append(*lines, "")
+		}
+		return
+	}
+
+	text := formatIndentedBlockText(block, all, depth)
+	if text != "" {
+		*lines = append(*lines, text)
+		*lines = append(*lines, "")
+	}
+
+	for _, child := range childrenOf(block) {
+		appendFormattedBlock(lines, child, all, depth+1)
+	}
+}
+
 func FormatBlocksAsMarkdown(blocks []map[string]any) string {
 	if len(blocks) == 0 {
 		return ""
@@ -189,70 +234,7 @@ func FormatBlocksAsMarkdown(blocks []map[string]any) string {
 
 	lines := []string{}
 	for _, block := range blocks {
-		if isTableBlock(block) {
-			if len(lines) > 0 {
-				lines = append(lines, "")
-			}
-			lines = append(lines, formatTable(block, all))
-			lines = append(lines, "")
-			continue
-		}
-
-		text := formatBlockText(block, all)
-		heading := getInt(block, ":block/heading")
-		if heading > 0 {
-			if len(lines) > 0 {
-				lines = append(lines, "")
-			}
-			lines = append(lines, text)
-		} else {
-			lines = append(lines, text)
-		}
-		lines = append(lines, "")
-
-		level1 := childrenOf(block)
-		for _, child := range level1 {
-			if isTableBlock(child) {
-				lines = append(lines, formatTable(child, all))
-				lines = append(lines, "")
-				continue
-			}
-			childText := formatBlockText(child, all)
-			childHeading := getInt(child, ":block/heading")
-			if childHeading > 0 {
-				if len(lines) > 0 {
-					lines = append(lines, "")
-				}
-				lines = append(lines, childText)
-			} else {
-				lines = append(lines, childText)
-			}
-			lines = append(lines, "")
-
-			deep := []map[string]any{}
-			collectChildrenFlat(child, 2, 1, &deep)
-			if len(deep) > 0 {
-				listItems := []string{}
-				for _, d := range deep {
-					dt := resolveRefs(getString(d, ":block/string"), all)
-					if isCodeBlock(d) {
-						if len(listItems) > 0 {
-							lines = append(lines, listItems...)
-							listItems = nil
-							lines = append(lines, "")
-						}
-						lines = append(lines, dt)
-						lines = append(lines, "")
-					} else {
-						listItems = append(listItems, "- "+dt)
-					}
-				}
-				if len(listItems) > 0 {
-					lines = append(lines, listItems...)
-					lines = append(lines, "")
-				}
-			}
-		}
+		appendFormattedBlock(&lines, block, all, 0)
 	}
 
 	return strings.TrimSpace(strings.Join(lines, "\n"))

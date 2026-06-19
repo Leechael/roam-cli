@@ -1,6 +1,9 @@
 package cmd
 
-import "testing"
+import (
+	"bytes"
+	"testing"
+)
 
 func TestValidateSaveTarget(t *testing.T) {
 	tests := []struct {
@@ -34,5 +37,25 @@ func TestValidateSaveTarget(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 		})
+	}
+}
+
+func TestSaveHelpMentionsHelpTopics(t *testing.T) {
+	root := newRootCmd()
+	var buf bytes.Buffer
+	root.SetOut(&buf)
+	root.SetErr(&buf)
+	root.SetArgs([]string{"save", "--help"})
+	_ = root.Execute()
+
+	out := buf.String()
+	if !bytes.Contains([]byte(out), []byte("roam-cli help writing-guide")) {
+		t.Fatalf("expected save help to mention writing-guide, got: %s", out)
+	}
+	if !bytes.Contains([]byte(out), []byte("roam-cli help write-examples")) {
+		t.Fatalf("expected save help to mention write-examples, got: %s", out)
+	}
+	if !bytes.Contains([]byte(out), []byte("--replace")) {
+		t.Fatalf("expected save help to mention --replace, got: %s", out)
 	}
 }
