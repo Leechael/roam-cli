@@ -71,8 +71,11 @@ jobs:
               tmpdir=$(mktemp -d)
               # Build main binary
               CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags="-s -w -X roam-cli/internal/cli.Version=${RELEASE_TAG#${TAG_PREFIX}}" -o "$tmpdir/${BINARY_NAME}" "$BUILD_TARGET"
-              # Build 1Password shell plugin binary
-              CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags="-s -w" -o "$tmpdir/roamresearch" ./contrib/1password-plugin/
+              # Build 1Password shell plugin binary from its own Go module
+              (
+                cd contrib/1password-plugin
+                CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags="-s -w" -o "$tmpdir/roamresearch" .
+              )
               # Archive both binaries
               tar -czf "$artifact" -C "$tmpdir" "${BINARY_NAME}" "roamresearch"
               rm -rf "$tmpdir"
